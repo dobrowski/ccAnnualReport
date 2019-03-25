@@ -1,0 +1,151 @@
+---
+title: "Suspensions"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, error = FALSE, message = FALSE)
+
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load(tidyverse,
+               kable,
+               kableExtra,
+               janitor,
+               here,
+               readxl,
+               ggthemes,
+               knitr,
+               scales,
+               grid,
+               formattable,
+               personograph)
+
+# options(knitr.table.format = "latex")
+
+my_theme <- list(theme_hc(),
+       scale_fill_few() ,
+ #       scale_fill_excel_new(),
+ # scale_fill_grey(),
+#  scale_fill_brewer(palette = "Paired"), # Accent, Pastel2, Dark2
+        labs(x = "",
+             y = "",
+             fill ="") )
+
+my_theme2 <- list(my_theme, 
+        coord_flip() ,
+        scale_y_continuous(labels = scales::percent_format(accuracy = 1)) 
+                  )
+
+
+```
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r suspensions}
+
+years <- c("1112","1213","1314","1415","1516","1617","1718")
+
+susp_all <- read.delim("susp1112.txt")%>% 
+                clean_names(case = "upper_camel") %>%
+        filter(FALSE)
+
+
+
+districts <- paste( c("Alisal", "Salinas" , "Gonzales" , "Soledad" , "King"),collapse = '|')
+
+
+for (i in years) {
+        susp_new <- read.delim( paste0("susp", i, ".txt") ) %>% 
+               clean_names(case = "upper_camel") %>%
+                filter( (AggregateLevel %in% c( "D1", "D2")  & CountyCode == 27),
+                        str_detect(  DistrictName , districts ),
+#                       is.na(DistrictCode),
+                       ReportingCategory == "TA"
+                       )
+ #               filter( str_detect(CountyName,"Monterey")  )
+                
+        susp_all <- bind_rows(susp_all, susp_new)
+}
+
+
+susp_all <- susp_all %>%
+        mutate(Geo = if_else(AggregateLevel == "T", "California" ,CountyName )) %>%
+        mutate_at(vars(CumulativeEnrollment:SuspensionCountDefianceOnly), funs(as.numeric) ) %>%
+        mutate(SuspensionCountOfStudentsSuspendedDefianceOnly2 =  if_else(is.na(SuspensionCountOfStudentsSuspendedDefianceOnly),   as.numeric( SuspensionCountDefianceOnly ) , as.numeric( SuspensionCountOfStudentsSuspendedDefianceOnly) )  )
+
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r susp, fig.height=4}
+
+susp_all2 <- susp_all %>% mutate(SuspensionRateTotal = SuspensionRateTotal/100,
+                                 NewSuspensionRate = UnduplicatedCountOfStudentsSuspendedTotal/CumulativeEnrollment) %>%
+        select(SuspensionRateTotal, NewSuspensionRate)
+
+
+susp_PBI <- susp_all %>% group_by(AcademicYear, CountyCode) %>%
+        summarise(CumulativeEnrollment = sum(CumulativeEnrollment),
+                  UnduplicatedCountOfStudentsSuspendedTotal = sum(UnduplicatedCountOfStudentsSuspendedTotal)) %>%
+        mutate( NewSuspensionRate = UnduplicatedCountOfStudentsSuspendedTotal/CumulativeEnrollment,
+                DistrictName = "PBI Districts")
+
+
+ggplot(susp_PBI, aes(x = AcademicYear, y = NewSuspensionRate, group = DistrictName, color = DistrictName )) +
+        geom_line(size = 1.5) +
+        theme_hc() +
+#        coord_flip() +
+        scale_color_few() +
+        scale_y_continuous(labels = scales::percent_format(accuracy = 1) ) +
+        labs(x = "",
+             y = "",
+             color ="",
+             title = "Suspension Rates Over Time for Combined PBI Districts")
+
+
+
+
+ggplot(susp_all2, aes(x = AcademicYear, y = SuspensionRateTotal, group = DistrictName, color = DistrictName )) +
+        geom_line(size = 1.5) +
+        theme_hc() +
+#        coord_flip() +
+        scale_color_few() +
+        scale_y_continuous(labels = scales::percent_format(accuracy = 1) ) +
+        labs(x = "",
+             y = "",
+             color ="",
+             title = "Suspension Rates Over Time")
+
+susp2 <- susp %>%
+        bind_rows(susp_PBI %>% select(Year = AcademicYear, Value = NewSuspensionRate, Geo= DistrictName)) %>%
+        mutate(Year = as.factor(Year))
+
+        ggplot(susp2, aes(x = Year, y = Value, group = Geo, color = Geo )) +
+        geom_line(size = 1.5) +
+        theme_hc() +
+#        coord_flip() +
+        scale_color_few() +
+        scale_y_continuous(labels = scales::percent_format(accuracy = 1), limits = c(.02,.1)) +
+        labs(x = "",
+             y = "",
+             color ="",
+             title = "Suspension Rates Over Time")
+
+
+
+
+
+```
+
+```{r save}
+
+ggsave("Suspension.jpg", width = 7, height = 4)
+
+
+```
+

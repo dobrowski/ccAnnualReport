@@ -1,0 +1,726 @@
+---
+title: "Children’s Council Annual Report - DRAFT"
+fontsize: 12pt
+date: "`r format(Sys.time(), '%d %B %Y')`"
+output:
+  pdf_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(dpi=300, echo = FALSE, warning = FALSE, error = FALSE, message = FALSE)
+
+
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load(tidyverse,
+               kable,
+               kableExtra,
+               janitor,
+               here,
+               readxl,
+               ggthemes,
+               knitr,
+               scales,
+               magick,
+               grid,
+               formattable,
+               personograph)
+
+# options(knitr.table.format = "latex")
+
+my_theme <- list(theme_hc(),
+       scale_fill_few() ,
+ #       scale_fill_excel_new(),
+ # scale_fill_grey(),
+#  scale_fill_brewer(palette = "Paired"), # Accent, Pastel2, Dark2
+        labs(x = "",
+             y = "",
+             fill ="") )
+
+my_theme2 <- list(my_theme, 
+        coord_flip() ,
+        scale_y_continuous(labels = scales::percent_format(accuracy = 1)) ,
+                geom_text(size = 2, position = position_dodge(width = 1)) 
+
+                  )
+fn = local({
+  i = 0
+  function(x) {
+    i <<- i + 1
+    paste('Figure ', i, ': ', x, sep = '')
+  }
+})
+
+```
+
+## Overview
+
+The data provided in this Children's Council report are intended to provide a context for the well-being of our children in Monterey County.  The data are not intended to show improvement that has occurred because of Children's Council's efforts. 
+
+```{r pop_numbers}
+pop <- tibble(
+        `Age Range` = c(
+                "Under 5 years",
+                "5 to 9 years",
+                "10 to 14 years" ,
+                "15 to 19 years",
+                "20 to 24 years"
+        ),
+        Count =	comma(c(
+                32846,
+                31904,
+                31906,
+                30321,
+                32631), digits = 0)
+)
+
+        pop %>% kable(format = "latex", booktabs = TRUE) %>%
+        kable_styling(latex_options = c("striped", "hover", "condensed")) %>%
+        row_spec(0,color = "black", bold = TRUE, background = "#89CFF0") 
+
+```
+
+There are approximately `r text_spec("114,000", color = "cyan", font_size = 20)` children under 18 living in Monterey County.  That is 26.4% of the population[^1].   Of them, `r text_spec("21.6%", color = "orange", font_size = 18)`   live in poverty[^2].   For 18 to 24 year olds, `r percent( (2785 + 4058) / (2785 + 4058 + 17910 + 15266), digits = 0 ) `[^olderpoverty] live in poverty. 
+
+[^1]: American Community Survey 2017 5-year estimate Table DP05
+[^2]: American Community Survey 2017 5-year estimate Table DP03
+[^olderpoverty]:  American Community Survey 2017 5-year estimate Table B17001
+
+```{r persons, fig.height=1.5, fig.width=4}
+
+
+personograph(list(`In Poverty`=.2, `Not in Poverty`=.8), colors=list(`In Poverty`="orange", `Not in Poverty`="grey"), n.icons=5, dimensions = c(1,5) , icon.style = 6)
+
+
+# img.name <- "persons.png"
+# 
+# png( here("figs", img.name), width = 4, height = 1, units = "px")
+# # ggsave( here("figs", img.name), dpi =300, width = 4, height = 1)
+# 
+# include_graphics(here("figs", img.name))
+
+```
+
+
+
+```{r read_data}
+
+demographics <- read_xlsx(here("data", "CC Annual Report.xlsx"), sheet = "Demographics") %>%
+        mutate(Geo = str_replace_all(str_to_lower(Geo), "monterey", "Monterey County"),
+               Geo = str_replace_all(str_to_lower(Geo), "county county", "County"),
+               Geo = str_to_title(Geo),
+               Group = str_to_title(Group),
+               Group = str_replace_all(Group, "(Eo)", "EO"),
+               Group = str_replace_all(Group, "(El)", "ELs")
+               )
+graduation <- read_xlsx(here("data", "CC Annual Report.xlsx"), sheet = "Graduation") %>%
+        mutate(Geo = str_replace_all(str_to_lower(Geo), "monterey", "Monterey County"),
+               Geo = str_replace_all(str_to_lower(Geo), "county county", "County"),
+               Geo = str_to_title(Geo),
+               Subgroup = str_to_title(Subgroup),
+               Subgroup = str_replace_all(Subgroup, "(Eo)", "EO"),
+               Subgroup = str_replace_all(Subgroup, "(El)", "ELs")               
+               )
+grad <- read_xlsx(here("data", "CC Annual Report.xlsx"), sheet = "Grad")
+caasp <- read_xlsx(here("data", "CC Annual Report.xlsx"), sheet = "ELA") %>%
+        mutate(Geo = str_replace_all(str_to_lower(Geo), "monterey", "Monterey County"),
+               Geo = str_replace_all(str_to_lower(Geo), "county county", "County"),
+               Geo = str_to_title(Geo),
+               Subgroup = str_to_title(Subgroup),
+               Subgroup = str_replace_all(Subgroup, "(Eo)", "EO"),
+               Subgroup = str_replace_all(Subgroup, "(El)", "ELs")               
+               ) %>%
+        mutate(Subgroup = fct_inorder(Subgroup))
+pers <- read_xlsx(here("data", "CC Annual Report.xlsx"), sheet = "Personnel")
+susp <- read_xlsx(here("data", "CC Annual Report.xlsx"), sheet = "Suspension")
+exp <- read_xlsx(here("data", "CC Annual Report.xlsx"), sheet = "Expulsion")
+fost <- read_xlsx(here("data", "CC Annual Report.xlsx"), sheet = "Foster")
+hom <- read_xlsx(here("data", "CC Annual Report.xlsx"), sheet = "Homeless")
+
+```
+
+
+```{r suspensions}
+
+years <- c("1112","1213","1314","1415","1516","1617","1718")
+
+susp_all <- read.delim(here("data", "susp1112.txt") ) %>% 
+                clean_names(case = "upper_camel") %>%
+        filter(FALSE)
+
+
+for (i in years) {
+        susp_new <- read.delim(here("data",  paste0("susp", i, ".txt") ) ) %>% 
+               clean_names(case = "upper_camel") %>%
+                filter( (AggregateLevel == "T"  |CountyCode == 27),
+                       is.na(DistrictCode),
+                       ReportingCategory == "TA")
+ #               filter( str_detect(CountyName,"Monterey")  )
+                
+        susp_all <- bind_rows(susp_all, susp_new)
+}
+
+
+susp_all <- susp_all %>%
+        mutate(Geo = if_else(AggregateLevel == "T", "California" ,CountyName )) %>%
+        mutate_at(vars(CumulativeEnrollment:SuspensionCountDefianceOnly), funs(as.numeric) ) %>%
+        mutate(SuspensionCountOfStudentsSuspendedDefianceOnly2 =  if_else(is.na(SuspensionCountOfStudentsSuspendedDefianceOnly),   as.numeric( SuspensionCountDefianceOnly ) , as.numeric( SuspensionCountOfStudentsSuspendedDefianceOnly) )  )
+
+```
+
+
+```{r expulsions}
+
+years <- c("1112","1213","1314","1415","1516","1617","1718")
+
+exp_all <- read.delim(here("data", "exp1112.txt") ) %>% 
+                clean_names(case = "upper_camel") %>%
+        filter(FALSE)
+
+
+for (i in years) {
+        exp_new <- read.delim(here("data", paste0("exp", i, ".txt") ) ) %>% 
+               clean_names(case = "upper_camel") %>%
+                filter( (AggregateLevel == "T"  |CountyCode == 27),
+                       is.na(DistrictCode),
+                       ReportingCategory == "TA")
+ #               filter( str_detect(CountyName,"Monterey")  )
+                
+        exp_all <- bind_rows(exp_all, exp_new)
+}
+
+
+exp_all <- exp_all %>%
+        mutate(Geo = if_else(AggregateLevel == "T", "California" ,CountyName )) %>%
+        mutate_at(vars(CumulativeEnrollment:ExpulsionCountDefianceOnly), funs(as.numeric) ) %>%
+        mutate(rate = UnduplicatedCountOfStudentsExpelledTotal/CumulativeEnrollment)
+
+
+```
+
+For children under six, 96.8% have health insurance.   For six to 18 year olds, 98.3% have health insurance and for 19 to 25 year olds 86.2% have insurance[^insurance]. 
+
+[^insurance]: American Community Survey 2017 1-year estimate Table S2701
+
+## Demographics
+
+Monterey County enrolled K-12 students represent a diversity of backgrounds. Socioeconomically Disadvantaged[^DisadDef] students (74%) and Latinx[^latinx] students (79%) make up the largest proportion of our students[^3]. Of children under 5, `r percent( (12769 + 12317)/(16836 + 16010), digits = 0 )  ` are Latinx, and of youth 18 to 24, `r percent( (4221+11148+4072+10230) / (6476+4330+3162+9749 + 6192 + 3525+3100+8765 ) , digits = 0 ) ` are Latinx[^childlatinx].
+
+[^DisadDef]: Socioeconomically Disadvantaged students are defined by the 2018 California School Dashboard
+Technical Guide FINAL VERSION: 2018–19 School Year as:
+* They were migrant, foster, homeless at any time during the academic year, or
+* They were eligible for Free or Reduced-Priced Meal (FRPM) Program (also known as the National School Lunch Program), or had direct certification for FRPM at any time during the academic year at the testing school, or
+* The parent education level is marked as “both parents did not received a high school diploma” at the time of testing.
+[^latinx]: Different data sources use different terms to identify individuals in racial or ethnic catergories.  For sake of consistency, the term Latinx is used in this report.   
+[^3]: Dataquest County Level Enrollment 2017-18  
+[^childlatinx]: American Community Survey 2017 5-year estimate Table B01001I
+
+```{r out.width="60%", fig.align="center"}
+
+include_graphics(here("img", "Cover A.jpg"))
+
+```
+
+```{r demographics, echo=FALSE}
+
+temp.img <- ggplot(demographics, aes(x = reorder(Group, Value), y = Value, fill = Geo, label = percent(Value, digits = 0) )) +
+        geom_col(position = "dodge") +
+        my_theme2 + 
+ #       geom_text(data = demographics %>% filter(Value > 0.01) , size = 2, position = position_dodge(width = 1)) +
+        labs(title = fn("K-12 Student Demographics"),
+             caption = "Source: Dataquest County Level Enrollment 2017-18")
+
+img.name <- "demo.png"
+
+ggsave( here("figs", img.name), dpi =300, width = 7, height = 5)
+
+include_graphics(here("figs", img.name))
+
+
+```
+
+\ 
+Enrollment in licensed early care and education is lower than state averages, with 32.5% of working families with children ages zero to five having access[^childcare1]. About 54% of three to five year-olds in the county are enrolled in preschool or kindergarten, compared to 61% statewide[^childcare2].
+
+[^childcare1]: Calculated by F5MC by dividing the total number of spaces in licensed child care centers and family child care homes (10,352 in 2014; California Child Care Resource and Referral Network, California Child Care Portfolio, 2015) by the number of children under six years of age living with one or both parents, with one or both of their parents in the labor force (32,410 in 2014; U.S. Census, American Community Survey, 2014 1-year estimate).
+[^childcare2]: Kidsdata, Children Ages 3-5 Not Enrolled in Preschool or Kindergarten (Regions of 10,000 Residents or More) https://www.kidsdata.org/topic/785/no-preschool10/table#fmt=1200&loc=320,2&tf=90&sortType=asc 
+
+
+
+```{r field_day, out.width = "75%", fig.align="center"}
+
+# include_graphics("NASA Field Day 2018_6.JPG")
+include_graphics(here("img", "Migrant.jpg"))
+
+```
+
+
+```{r migrant}
+mig_mont <- 8882
+mig_ca <- 87893
+enr_mont <- 77954
+enr_ca <- 6220413
+
+```
+
+
+There were `r comma(mig_mont, digits = 0)` migrant students in 2017-18 in Monterey County.  This is `r percent(mig_mont/enr_mont, digits = 1)` of enrolled students compared with `r percent(mig_ca/enr_ca, digits = 1)` for California[^4]. A child is considered "migratory" if the parent or guardian is a migratory worker in the agricultural, dairy, lumber, or fishing industries and whose family has moved during the past three years. A "qualifying" move can range from moving from one residence to another or across school district boundaries due to economic necessity[^mig].  Monterey County has the second largest migrant program in the state.
+
+
+[^4]: Migrant Student Information Network through West Ed
+[^mig]: Overview of Migrant Education in California https://www.cde.ca.gov/sp/me/mt/overview.asp 
+
+```{r persons2, fig.height=2.75, fig.width=6, include=FALSE}
+personograph(list(`Migrant in Monterey County`=.1139, `Not Migrant`=.8861), colors=list(`Migrant in Monterey County`="orange", `Not Migrant`="grey"), n.icons=100, dimensions = c(5,20) , icon.style = 6)
+
+```
+
+\  
+
+Looking at Foster Youth, the figure below shows that while the rate for California has gone down over the past four years it is still more than double the rate in Monterey County.  The rate for Monterey County has remained relatively flat.  There were `r fost$Value[1]` identified foster youth enrolled in `r fost$Year[1]`.  While a small number of students, this important group has the lowest graduation rate for Monterey County. 
+
+\  
+
+```{r fost, echo=FALSE}
+
+     temp.img  <- ggplot(fost, aes(x = Year, y = Rate, group = Geo, color = Geo, label= percent(Rate,digits = 2) )) +
+        geom_line(size = 1.5) +
+        geom_text(data = fost %>% filter(Year == max(Year)) , size = 3, color = "black") +
+        theme_hc() +
+#        coord_flip() +
+        scale_color_few() +
+        scale_y_continuous(labels = percent_format(accuracy = .1), limits = c(0,0.008)) +
+        labs(x = "",
+             y = "",
+             color ="",
+             title = fn("Rates Foster Children in K-12 School Over Time"),
+          caption = "Source: Dataquest County Level Enrollment")
+ 
+
+img.name <- "fost.png"
+
+ggsave( here("figs", img.name), dpi =300, width = 7, height = 4)
+
+include_graphics(here("figs", img.name))
+
+```
+
+The percentage of enrolled students who are living in housing-insecure or homeless situations doubled between 2014-15 and 2015-16 and has remained steady since then according to DataQuest. Monterey County's rate for housing-insecure students is more than double that of California.  The number of housing-insecure or homeless students in 2016-17 was 9,041 and in 2017-18 it was 8,049[^5].  These numbers are larger than what is reported in Dataquest (`r hom$Value[1]` in `r hom$Year[1]`) and furthermore it is suspected that the available data still may underreport the total number of students who meet the McKinney-Vento definition of homelessness. For McKinney-Vento, students who lack a fixed, regular and adequate night-time residence includes: 
+
+* Shared housing due to loss of housing or economic hardships
+* Living in cars, parks, sub-standard housing, hotels or motels
+* Primary night-time residence is a public or private place not designed for regular sleeping accommodations for a human being
+* Unaccompanied Minors (children & youth under 18, not in the physical custody of a parent or court-appointed guardian)
+
+According to the Monterey County Homeless Census Point-in-Time Report, among the homeless population in Monterey County, approximately 13% of homeless individuals or 598 people are under the age of 25[^homeless].   
+
+[^5]: California Department of Education via Monterey County Student Services McKinney-Vento Coordinator  
+[^homeless]:  Monterey County Homeless Census Report, page 20-21. 
+
+```{r homeless, echo=FALSE}
+
+img.temp <-  ggplot(hom, aes(x = Year, y = Rate, group = Geo, color = Geo , label = percent(Rate, digits = 1))) +
+        geom_line(size = 1.5) +
+        geom_text(data = hom %>% filter(Year == max(Year)) , size = 3, color = "black") +
+        theme_hc() +
+#        coord_flip() +
+        scale_color_few() +
+        scale_y_continuous(labels = percent_format(accuracy = .1), limits = c(0,0.1)) +
+        labs(x = "",
+             y = "",
+             color ="",
+             title = fn("Rates Homeless K-12 Students Over Time"),
+             caption = "Source: Dataquest County Level Enrollment")
+
+img.name <- "homeless.png"
+
+ggsave( here("figs", img.name), dpi =300, width = 7, height = 4)
+
+include_graphics(here("figs", img.name))
+
+
+```
+ 
+\  
+
+## Kindergarten Readiness
+
+In 2015, 21% of kindergartners had comprehensive mastery at kindergarten entry. Comprehensive mastery indicates that a child is well-prepared to enter kindergarten across all four developmental domains assessed by teachers using the Desired Results Developmental Profile–School Readiness (DRDP-SR). Teachers rated children’s competency on each item of the DRDP–SR using the following five-point scale: (1) Exploring, (2) Developing, (3) Building, (4) Integrating, and (5) Applying. Scores of (4) Integrating and (5) Applying indicate mastery of that item. The term comprehensive mastery is used to identify children with an average score of 4 or above across all items in the DRDP-SR excluding the English Language Development domain[^kra].
+
+## CAASPP Scores
+The California Assessment of Student Performance and Progress (CAASPP) System shows both successes and disparities that exist in our county.  African Americans in Monterey County are achieving standards on both ELA and Math tests at greater rates than California as a whole. White students in Monterey County are also achieving standards on ELA tests at greater rates than California.  However, almost all subpopulations as defined by race or other demographic category in Monterey County are achieving standards at lower rates than that same subpopulation in California[^caaspp].
+
+[^kra]: Nurturing Success: A Portrait of Kindergarten Readiness in Monterey County.  First 5 Monterey County and Harder+Co.
+[^caaspp]: CAASPP Smarter Balance Assessments
+
+```{r caasp-ela, fig.height=3.8, echo=FALSE}
+
+caasp2 <- caasp %>%
+        gather(key =  "Year", value = "value", -Test, -Geo, -Group, -Subgroup) %>%
+        mutate(Subgroup = as.factor(Subgroup))  %>%
+        mutate(Subgroup = fct_relevel(Subgroup, "3rd", "4th", "5th", "6th", "7th", "8th", "11th"))
+
+
+img.temp <- caasp2 %>% filter(Test == "ELA", Group == "Subgroup", Year == "2017-18") %>%
+        ggplot( aes(x = reorder(Subgroup, value), y = value, fill = Geo , label = percent(value, digits = 0) )) +
+        geom_col(position = "dodge") +
+        my_theme2 +
+        labs(title = fn("Percent of Students Meeting or Exceeding \nStandard for 2018 CAASPP ELA"),
+             caption = "Source: CAASPP Smarter Balance Assessments ")
+
+img.name <- "caaspp-ela.png"
+
+ggsave( here("figs", img.name), dpi =300, width = 7, height = 5)
+
+include_graphics(here("figs", img.name))
+
+
+```
+\    
+    
+Looking over time, most grades and subgroups have continued to improve annually on both the ELA and Math CAASPP tests.  The below charts and data tables show changes since 2014-15 when CAASPP was first implemented. 
+    
+   
+```{r caasp-over-time-ela, fig.height=4.5, echo=FALSE}
+
+img.temp <- caasp2 %>% filter(Test == "ELA", Group == "Grade", Geo == "Monterey County") %>%
+        ggplot(aes(
+                x = Year,
+                y = value,
+                group = Subgroup,
+                color = Subgroup
+        )) +
+        geom_line(size = 1.5) +
+        my_theme +
+ #       theme_linedraw() +
+        scale_color_few() +
+        scale_y_continuous(labels = scales::percent_format(accuracy = 1), limits = c(.2,.6)) +
+        labs(color = "",
+             title = fn("Percent of Students Meeting or Exceeding Standard for \nCAASPP ELA by Grade Level Over Time for Monterey County") ,
+             caption = "Source: CAASPP Smarter Balance Assessments ")
+
+img.name <- "caaspp-over-time-ela.png"
+
+ggsave( here("figs", img.name), dpi =300, width = 7, height = 4)
+
+include_graphics(here("figs", img.name))
+
+
+```
+
+
+```{r table2-ela}
+
+# caasp %>%
+#         filter(Test == "ELA", Group == "Subgroup") %>% 
+# #?????        percent_format(`2014-15`) %>%
+# #        mutate(value = color_bar("lightgreen")(value)) %>%
+#         select( Subgroup, Geo, "2014-15":"2017-18") %>% 
+#         arrange(Subgroup, desc(Geo)) %>% #       mutate(y2014_15 = `2014-15`) %>%
+#         mutate(`2014-15` = percent(`2014-15`, digits = 0)) %>%
+#         mutate(`2015-16` = percent(`2015-16`, digits = 0)) %>%
+#         mutate(`2016-17` = percent(`2016-17`, digits = 0)) %>%
+#         mutate(`2017-18` = percent(`2017-18`, digits = 0)) %>%
+#         kable(format = "latex", booktabs = TRUE) %>%
+#         kable_styling(latex_options = c("striped", "hover", "condensed")) %>%
+# #        group_rows(index = c("Monterey County" = 12, "California" = 12)) %>%
+#         # group_rows("Monterey County", 1, 12) %>%
+#         # group_rows("California", 13, 24) %>%
+#         row_spec(0,color = "black", bold = TRUE, background = "#89CFF0") %>%
+#         add_header_above(c(" ","", "English Language Arts" = 4), bold = TRUE) %>%
+#         collapse_rows(columns = 1)
+
+
+ include_graphics(here("figs", "ela-table.png"))
+
+```
+
+
+
+```{r caasp-math, fig.height=4, echo=FALSE}
+
+
+img.temp <- caasp2 %>% filter(Test == "Math", Group == "Subgroup", Year == "2017-18") %>%
+        ggplot( aes(x = reorder(Subgroup, value), y = value, fill = Geo , label = percent(value, digits = 0))) +
+        geom_col(position = "dodge") +
+        geom_text(size = 2, position = position_dodge(width = 1)) +
+        my_theme2 +
+        labs(title = fn("Percent of Students Meeting or Exceeding \nStandard for 2018 CAASPP Math"),
+             caption = "Source: CAASPP Smarter Balance Assessments ")
+
+img.name <- "caaspp-math.png"
+
+ggsave( here("figs", img.name), dpi =300, width = 7, height = 5)
+
+include_graphics(here("figs", img.name))
+
+```
+
+
+    
+```{r caasp-over-time-math, fig.height=4.5, echo=FALSE}
+
+img.temp <- caasp2 %>% filter(Test == "Math", Group == "Grade", Geo == "Monterey County") %>%
+        ggplot(aes(
+                x = Year,
+                y = value,
+                group = Subgroup,
+                color = Subgroup
+        )) +
+        geom_line(size = 1.5) +
+        my_theme +
+        scale_color_few() +
+        scale_y_continuous(labels = scales::percent_format(accuracy = 1), limits = c(.15,.4)) +
+        labs(color = "",
+             title = fn("Percent of Students Meeting or Exceeding Standard for \nCAASPP Math by Grade Level Over Time for Monterey County"),
+             caption = "Source: CAASPP Smarter Balance Assessments ")
+
+img.name <- "caaspp-over-time-math.png"
+
+ggsave( here("figs", img.name), dpi =300, width = 7, height = 4)
+
+include_graphics(here("figs", img.name))
+
+```
+
+
+
+
+```{r drums, out.height="30%", fig.align="right", include=FALSE}
+
+include_graphics(here("img", "Cover Option 4.jpg"))
+
+```
+
+
+```{r table1, include=FALSE}
+
+# options(knitr.table.format = "latex")
+
+caasp %>%
+        filter(Test == "Math", Group == "Subgroup") %>%
+#        mutate(value = color_bar("lightgreen")(value)) %>%
+        select( Subgroup, "2014-15":"2017-18") %>% 
+        mutate(`2014-15` = percent(`2014-15`, digits = 0)) %>%
+        mutate(`2015-16` = percent(`2015-16`, digits = 0)) %>%
+        mutate(`2016-17` = percent(`2016-17`, digits = 0)) %>%
+        mutate(`2017-18` = percent(`2017-18`, digits = 0)) %>% 
+        kable(format = "latex", booktabs = TRUE) %>%
+        kable_styling(latex_options = c("striped", "hover", "condensed")) %>%
+        group_rows(index = c("Monterey County" = 12, "California" = 12)) %>%
+        # group_rows("Monterey County", 1, 12) %>%
+        # group_rows("California", 13, 24) %>%
+        row_spec(0,color = "black", bold = TRUE, background = "#89CFF0") %>%
+        add_header_above(c(" ", "Math" = 4), bold = TRUE)
+```
+
+```{r table1-new}
+
+# options(knitr.table.format = "latex")
+
+# caasp %>%
+#         filter(Test == "Math", Group == "Subgroup") %>%
+# #        mutate(value = color_bar("lightgreen")(value)) %>%
+#         select( Subgroup, Geo, "2014-15":"2017-18") %>% 
+#         arrange(Subgroup, desc(Geo)) %>%
+#         mutate(`2014-15` = percent(`2014-15`, digits = 0)) %>%
+#         mutate(`2015-16` = percent(`2015-16`, digits = 0)) %>%
+#         mutate(`2016-17` = percent(`2016-17`, digits = 0)) %>%
+#         mutate(`2017-18` = percent(`2017-18`, digits = 0)) %>% 
+#         kable(format = "latex", booktabs = TRUE) %>%
+#         kable_styling(latex_options = c("striped", "hover", "condensed")) %>%
+#  #       group_rows(index = c("Monterey County" = 12, "California" = 12)) %>%
+#         # group_rows("Monterey County", 1, 12) %>%
+#         # group_rows("California", 13, 24) %>%
+#         row_spec(0,color = "black", bold = TRUE, background = "#89CFF0") %>%
+#         add_header_above(c(" ","", "Math" = 4), bold = TRUE) %>%
+#         collapse_rows(columns = 1) # %>%
+#  #       as_image(here("figs", "math-table.png"))
+
+ include_graphics(here("figs", "math-table.png"))
+
+```
+
+\  
+
+```{r apple, out.height = "27%" , include=FALSE}
+
+include_graphics(here("img", "AC-Ciscka Tutoring at Dr Oscar-Loya.JPG"))
+```
+
+## Graduation
+
+Over the past decade, the percentage of students graduating has steadily risen and is a higher rate than California as a whole.  Of graduates, 44.4% in Monterey County and 49.9% in California meet UC/CSU Requirements[^grad].
+
+[^grad]: Dataquest County Level Four-Year Adjusted Cohort Graduation Rate
+
+```{r grad, echo=FALSE}
+
+img.temp <- ggplot(grad, aes(x = Year, y = Value, group = Geo, color = Geo , label=percent(Value, digits = 0) )) +
+        geom_line(size = 1.5) +
+        geom_text(data = grad %>% filter(Year == max(Year)) , size = 3, color = "black") +
+        theme_hc() +
+#        coord_flip() +
+        scale_color_few() +
+        scale_y_continuous(labels = percent_format(accuracy = 1)) +
+        labs(x = "",
+             y = "",
+             color ="",
+             title = fn("Graduation Rates Over Time"),
+             caption = "Source: Dataquest County Level Four-Year Adjusted Cohort Graduation Rate") 
+
+img.name <- "grad.png"
+
+ggsave( here("figs", img.name), dpi =300, width = 7, height = 4)
+
+include_graphics(here("figs", img.name))
+
+
+```
+
+\  
+
+```{r tutor, out.width = "75%", fig.align = "center"}
+
+include_graphics(here("img", "Cover B.jpg"))
+
+```
+
+Looking at groups of students we see variance in the rates of graduation.  For the most part, the patterns parallel California with Filipino and Asian students showing the highest graduation rates on average, while African American students, English Learners and Students with Disabilities showing the lowest graduation rates on average.  Nonetheless Monterey County's rates for English Learners and Students with Disabilities are higher than the rates for these groups in California. We also have higher rates for Latinx students and Socioeconomically disadvantaged students than California [^grad].  
+
+```{r graduation, echo=FALSE}
+
+
+img.temp <- ggplot(graduation,
+                   aes(x = reorder(Subgroup, Value),
+                       y = Value,
+                       fill = Geo ,
+                       label = percent(Value, digits = 0)  )) +
+        geom_col(position = "dodge") +
+        my_theme2 +
+        labs(title = fn("Graduation Rates by Subgroup"),
+             caption = "Source: Dataquest County Level Four-Year Adjusted Cohort Graduation Rate") 
+
+img.name <- "graduation.png"
+
+ggsave( here("figs", img.name), dpi =300, width = 7, height = 5)
+
+include_graphics(here("figs", img.name))
+
+```
+
+
+## School Context
+
+Support personnel such as nurses and psychologists can make a large impact in the atmosphere of the school as well as holistically supporting our young community members.  Monterey County support personnel have to assist more students each than their peers throughout the state. In other words there are fewer of these support personnel locally than there are elsewhere in the state[^pers].
+
+[^pers]: Kidsdata Ratio of Students to Pupil Support Service Personnel, by Type of Personnel
+
+```{r support, echo=FALSE}
+img.temp <- pers %>%
+        filter(Group != "Social Worker") %>% 
+ggplot( aes(x = reorder(Group, Value), y = Value, fill = Geo, label = Value )) +
+        geom_col(position = "dodge") + 
+        geom_text(size = 3, position = position_dodge(width = 1)) +
+        my_theme +
+        coord_flip() +
+        labs(title = fn("Number of Students per Support Personnel"),
+             subtitle = "Shorter bars indicate better ratios",
+             caption = "Source: Kidsdata Ratio of Students to Pupil Support Service Personnel, by Type of Personnel") + #,
+      #       caption = "https://data1.cde.ca.gov/dataquest/PuplSvs2.asp?cYear=2017-18&cChoice=CoPupSvcs1&cCounty=27,MONTEREY") +
+        scale_y_continuous(labels = comma_format()) 
+
+img.name <- "support.png"
+
+ggsave( here("figs", img.name), dpi =300, width = 7, height = 5)
+
+include_graphics(here("figs", img.name))
+```
+
+
+
+
+
+```{r susp, fig.height=4}
+
+img.temp <-  ggplot(susp, aes(x = Year, y = Value, group = Geo, color = Geo , label = percent(Value, digits = 1))) +
+        geom_line(size = 1.5) +
+        geom_text(data = susp %>% filter(Year == max(Year)) , size = 3, color = "black") +
+        theme_hc() +
+#        coord_flip() +
+        scale_color_few() +
+        scale_y_continuous(labels = scales::percent_format(accuracy = 1), limits = c(.03,.07)) +
+        labs(x = "",
+             y = "",
+             color ="",
+             title = fn("K-12 Suspension Rates Over Time"),
+             caption = "Source: Dataquest County Level Expulsions and Suspensions")
+
+img.name <- "susp.png"
+
+ggsave( here("figs", img.name), dpi =300, width = 7, height = 4)
+
+include_graphics(here("figs", img.name))
+
+```
+
+\  
+
+Suspensions have decreased in the past decade, and they remain higher than the rate for California as a whole. Whereas expulsions, while varying more because of low numbers, remain lower than California as a whole.  For both there was a substantial decrease from 2011-12 to 2014-15.  Since then suspensions have plateaued[^susp].
+
+[^susp]: Dataquest County Level Expulsions and Suspensions
+
+
+```{r exp, fig.height=4}
+
+ img.temp <-  ggplot(exp, aes(x = Year, y = Value, group = Geo, color = Geo , label = percent(Value, digits = 2) )) +
+        geom_line(size = 1.5) +
+        geom_text(data = exp %>% filter(Year == max(Year)) , size = 3, color = "black") +
+        theme_hc() +
+#        coord_flip() +
+        scale_color_few() +
+        scale_y_continuous(labels = scales::percent_format(accuracy = .01), limits = c(0,0.002)) +
+        labs(x = "",
+             y = "",
+             color ="",
+             title = fn("K-12 Expulsion Rates Over Time"),
+             caption = "Source: Dataquest County Level Expulsions and Suspensions")
+
+img.name <- "exp.png"
+
+ggsave( here("figs", img.name), dpi =300, width = 7, height = 5)
+
+include_graphics(here("figs", img.name))
+
+```
+
+
+```{r tabletop, out.width= "75%", fig.align= "center"}
+
+include_graphics(here("img", "DSC01801.JPG"))
+
+```
+
+
+
+## Data Highlights 
+
+*Areas of Success*  
+
+* A higher proportion of students served in Monterey County are migrant students than California as a whole.  
+* More African Americans in Monterey County are achieving standards on CAASPP ELA and Math tests than California.  
+* More white students in Monterey County are achieving standards on CAASPP ELA tests than California.  
+* For the past four years, ELA and Math CAASPP scores have increased annually for most grade levels.  
+* For the past four years, ELA and Math CAASPP scores have increased annually for most subgroups.  
+* Graduation rates have steadily grown over the past decade and are now higher than California.  
+* Suspension and Expulsion rates have dropped since 2011-12.  
+
+*Areas for Growth * 
+
+* Almost all subpopulations in Monterey County are achieving standards on CAASPP ELA and Math tests at lower rates than California.  
+* Monterey County has more than twice the rate of homeless students than California.  
+* African American students, English Learners and Students with Disabilities have the lowest graduation rates in Monterey County and in California.   
+* Monterey County schools have fewer nurses and psychologists for students than California as a whole.  
+* Suspension rates have remained steady since 2014-15.  
+
+
