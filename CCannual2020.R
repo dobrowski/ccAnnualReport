@@ -103,23 +103,34 @@ cupc.mry <- cupc %>%
   group_by(AcademicYear)
 
 # Total Enrollment
-Total.Enrollment.mry <- cupc.mry %>%
-  summarise(countyenrollment = sum(TotalEnrollment))
 
-# Homeless
-Homeless.mry <- cupc.mry %>%
-  summarise(countyenrollment = sum(Homeless))
+enrollment <- function(enrolltype, lowlimit, highlimit,tit ){
+  cupc.mry %>%
+  summarise(countyenrollment = sum({{enrolltype}})) %>%
+  `colnames<-`(c("year","value")) %>%
+  ungroup() %>%
+  mutate(Geo = "Monterey County") %>%
+  ggplot( aes(x = year, y = value,  label=comma( value) , group = Geo)) +
+  geom_line(size = 1.5) +
+  geom_label( size = 3, color = "black") +
+  theme_hc() +
+  scale_color_few() +
+  scale_y_continuous(labels = comma_format(), limits = c(lowlimit,highlimit)) +
+  labs(x = "",
+       y = "",
+       color ="",
+       title = (tit),
+       caption = "Source: ") 
+}
 
-# Free and Reduced Lunch Meal Program
-frpm.mry <- cupc.mry %>%
-  summarise(countyenrollment = sum(UnduplicatedFrpmEligibleCount))
+enrollment(TotalEnrollment, 60000, 80000, "Total Enrollment in Monterey County")
 
+enrollment(Homeless, 0, 10000, "Homeless Enrollment in Monterey County")
 
-# English Language Learners
-el.mry <- cupc.mry %>%
-  summarise(countyenrollment = sum(EnglishLearnerEl))
+enrollment(UnduplicatedFrpmEligibleCount, 50000, 60000, "Free/Reduced Price Meals Enrollment in Monterey County")
 
-# Children Enrolled in Special Education
+enrollment(EnglishLearnerEl, 25000, 35000, "English Learner Enrollment in Monterey County")
+
 
 
 
@@ -289,8 +300,21 @@ pft.mry <- all.pft %>%
 
 pft.mry %>% 
   filter(str_detect(name, "Perc")) %>%
-ggplot() +
-  geom_line(aes(x= year, y = value, group = GeoGrade, color = GeoGrade))
+ggplot(aes(x= year, y = value/100, group = GeoGrade, color = GeoGrade, label=percent(value/100, digits = 0))) +
+  geom_line(size = 1.5) +
+  geom_text(data = pft.mry %>% 
+              filter(str_detect(name, "Perc")) %>%
+              filter(year == max(year)) , size = 3, color = "black") +
+  theme_hc() +
+  scale_color_few() +
+  scale_y_continuous(labels = percent_format(accuracy = 1), limits = c(.50, .80)) +
+  labs(x = "",
+       y = "",
+       color ="",
+       title = ("Percentage Meeting 4 or more of 6 Physical Fitness Tests Over Time"),
+       caption = "Source: ") 
+
+
 
 # Works but needs theming and colors so that MRY and CA are distinguished 
 
