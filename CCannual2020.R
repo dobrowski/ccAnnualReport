@@ -6,7 +6,13 @@ library(scales)
 library(ggthemes)
 library(readxl)
 
-
+my_theme <- list(theme_hc(),
+                 scale_fill_few() ,
+      #           geom_text(size = 2, position = position_dodge(width = 1)),
+                 theme(plot.title.position = "plot"),
+                 labs(x = "",
+                      y = "",
+                      fill ="") )
 
 ### Graduation Rate ------
 
@@ -52,7 +58,7 @@ ggplot(grad_all, aes(x = AcademicYear, y = RegularHsDiplomaGraduatesRate/100, gr
        y = "",
        color ="",
        title = ("Graduation Rates Over Time"),
-       caption = "Source: ") 
+       caption = "Source: Adjusted Cohort Outcome Data \n https://www.cde.ca.gov/ds/sd/sd/filesacgr.asp") 
 
 
 
@@ -67,12 +73,13 @@ ggplot(grad_all, aes(x = AcademicYear, y = DropoutRate/100, group = Geo, color =
   theme_hc() +
   #        coord_flip() +
   scale_color_few() +
+  my_theme +
   scale_y_continuous(labels = percent_format(accuracy = 1), limits = c(0,.15)) +
   labs(x = "",
        y = "",
        color ="",
        title = ("Dropout Rates Over Time"),
-       caption = "Source: ") 
+       caption = "Source: Adjusted Cohort Outcome Data \n https://www.cde.ca.gov/ds/sd/sd/filesacgr.asp") 
 
 
 
@@ -120,7 +127,7 @@ enrollment <- function(enrolltype, lowlimit, highlimit,tit ){
        y = "",
        color ="",
        title = (tit),
-       caption = "Source: ") 
+       caption = "Source: Unduplicated Pupil Count \n https://www.cde.ca.gov/ds/sd/sd/filescupc.asp") 
 }
 
 enrollment(TotalEnrollment, 60000, 80000, "Total Enrollment in Monterey County")
@@ -196,7 +203,7 @@ ggplot(susp_all, aes(x = AcademicYear, y = SuspensionRateTotal, group = Geo, col
        y = "",
        color ="",
        title = ("K-12 Suspension Rates Over Time"), # fn("K-12 Suspension Rates Over Time"),
-       caption = "Source: ")
+       caption = "Source: Suspension Data Files \n https://www.cde.ca.gov/ds/sd/sd/filessd.asp")
 
 
 ### Expulsion -------
@@ -243,7 +250,7 @@ ggplot(exp_all, aes(x = AcademicYear, y = rate, group = Geo, color = Geo , label
        y = "",
        color ="",
        title =  ("K-12 Expulsion Rates Over Time"), #fn("K-12 Expulsion Rates Over Time"),
-       caption = "Source: ")
+       caption = "Source: Expulsion Data Files \n https://www.cde.ca.gov/ds/sd/sd/filesed.asp")
 
 
 
@@ -312,7 +319,7 @@ ggplot(aes(x= year, y = value/100, group = GeoGrade, color = GeoGrade, label=per
        y = "",
        color ="",
        title = ("Percentage Meeting 4 or more of 6 Physical Fitness Tests Over Time"),
-       caption = "Source: ") 
+       caption = "Source: Physical Fitness Test Data \n https://www.cde.ca.gov/ta/tg/pf/pftresearch.asp")
 
 
 
@@ -356,7 +363,7 @@ ggplot( aes(x = Year, y = value/100, group = Geo, color = Geo , label=percent(va
        y = "",
        color ="",
        title = (paste0(test, " Percentage Meeting and Exceeding Rates Over Time")),
-       caption = "Source: ") 
+       caption = "Source: CAASPP Research Files \n https://caaspp-elpac.cde.ca.gov/caaspp/ResearchFileList")
 
 
 test <- "Math"
@@ -375,8 +382,8 @@ sbac.filtered %>%
        y = "",
        color ="",
        title = (paste0(test, " Percentage Meeting and Exceeding Rates Over Time")),
-       caption = "Source: ") 
- 
+       caption = "Source: CAASPP Research Files \n https://caaspp-elpac.cde.ca.gov/caaspp/ResearchFileList")
+
 
 ### End ----
 
