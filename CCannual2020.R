@@ -60,7 +60,7 @@ ggplot(grad_all, aes(x = AcademicYear, y = RegularHsDiplomaGraduatesRate/100, gr
        title = ("Graduation Rates Over Time"),
        caption = "Source: Adjusted Cohort Outcome Data \n https://www.cde.ca.gov/ds/sd/sd/filesacgr.asp") 
 
-
+ggsave(here("figs","2020","graduation.png"), width = 6, height = 4)
 
 ### Dropout Rate ------
 
@@ -81,6 +81,7 @@ ggplot(grad_all, aes(x = AcademicYear, y = DropoutRate/100, group = Geo, color =
        title = ("Dropout Rates Over Time"),
        caption = "Source: Adjusted Cohort Outcome Data \n https://www.cde.ca.gov/ds/sd/sd/filesacgr.asp") 
 
+ggsave(here("figs","2020","dropout.png"), width = 6, height = 4)
 
 
 ### Enrollment -------
@@ -131,12 +132,20 @@ enrollment <- function(enrolltype, lowlimit, highlimit,tit ){
 }
 
 enrollment(TotalEnrollment, 60000, 80000, "Total Enrollment in Monterey County")
+ggsave(here("figs","2020","total enrollment.png"), width = 6, height = 4)
+
 
 enrollment(Homeless, 0, 10000, "Homeless Enrollment in Monterey County")
+ggsave(here("figs","2020","homeless enrollment.png"), width = 6, height = 4)
+
 
 enrollment(UnduplicatedFrpmEligibleCount, 50000, 60000, "Free/Reduced Price Meals Enrollment in Monterey County")
+ggsave(here("figs","2020","frpm enrollment.png"), width = 6, height = 4)
+
 
 enrollment(EnglishLearnerEl, 25000, 35000, "English Learner Enrollment in Monterey County")
+ggsave(here("figs","2020","EL enrollment.png"), width = 6, height = 4)
+
 
 
 
@@ -205,6 +214,8 @@ ggplot(susp_all, aes(x = AcademicYear, y = SuspensionRateTotal, group = Geo, col
        title = ("K-12 Suspension Rates Over Time"), # fn("K-12 Suspension Rates Over Time"),
        caption = "Source: Suspension Data Files \n https://www.cde.ca.gov/ds/sd/sd/filessd.asp")
 
+ggsave(here("figs","2020","suspension.png"), width = 6, height = 4)
+
 
 ### Expulsion -------
 
@@ -252,6 +263,7 @@ ggplot(exp_all, aes(x = AcademicYear, y = rate, group = Geo, color = Geo , label
        title =  ("K-12 Expulsion Rates Over Time"), #fn("K-12 Expulsion Rates Over Time"),
        caption = "Source: Expulsion Data Files \n https://www.cde.ca.gov/ds/sd/sd/filesed.asp")
 
+ggsave(here("figs","2020","expulsion.png"), width = 6, height = 4)
 
 
 ### Physical Fitness -----
@@ -321,6 +333,7 @@ ggplot(aes(x= year, y = value/100, group = GeoGrade, color = GeoGrade, label=per
        title = ("Percentage Meeting 4 or more of 6 Physical Fitness Tests Over Time"),
        caption = "Source: Physical Fitness Test Data \n https://www.cde.ca.gov/ta/tg/pf/pftresearch.asp")
 
+ggsave(here("figs","2020","physical.png"), width = 6, height = 4)
 
 
 # Works but needs theming and colors so that MRY and CA are distinguished 
@@ -365,6 +378,8 @@ ggplot( aes(x = Year, y = value/100, group = Geo, color = Geo , label=percent(va
        title = (paste0(test, " Percentage Meeting and Exceeding Rates Over Time")),
        caption = "Source: CAASPP Research Files \n https://caaspp-elpac.cde.ca.gov/caaspp/ResearchFileList")
 
+ggsave(here("figs","2020",paste0(test,".png")), width = 6, height = 4)
+
 
 test <- "Math"
 
@@ -383,6 +398,8 @@ sbac.filtered %>%
        color ="",
        title = (paste0(test, " Percentage Meeting and Exceeding Rates Over Time")),
        caption = "Source: CAASPP Research Files \n https://caaspp-elpac.cde.ca.gov/caaspp/ResearchFileList")
+
+ggsave(here("figs","2020",paste0(test,".png")), width = 6, height = 4)
 
 
 ### End ----
