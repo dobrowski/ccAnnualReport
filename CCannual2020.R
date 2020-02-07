@@ -14,6 +14,9 @@ my_theme <- list(theme_hc(),
                       y = "",
                       fill ="") )
 
+
+`%notin%` <- Negate(`%in%`)
+
 ### Graduation Rate ------
 
 ##  https://www.cde.ca.gov/ds/sd/sd/filesacgr.asp
@@ -316,6 +319,7 @@ pft.mry <- all.pft %>%
               name == "NoStud9_8" ~ "9"))))
 
 
+pft.pal <- c("#5DA5DA", "#2A72A7", "#003F74", "#FAA43A",  "#C77107","#943E00")
 
 pft.mry %>% 
   filter(str_detect(name, "Perc")) %>%
@@ -325,19 +329,18 @@ ggplot(aes(x= year, y = value/100, group = GeoGrade, color = GeoGrade, label=per
               filter(str_detect(name, "Perc")) %>%
               filter(year == max(year)) , size = 3, color = "black") +
   theme_hc() +
-  scale_color_few() +
+  scale_color_manual(values = pft.pal ) +
+#    scale_color_few() +
   scale_y_continuous(labels = percent_format(accuracy = 1), limits = c(.50, .80)) +
+  guides(color = guide_legend(nrow=3,byrow=FALSE)) +
   labs(x = "",
        y = "",
        color ="",
-       title = ("Percentage Meeting 4 or more of 6 Physical Fitness Tests Over Time"),
+       title = ("Physical Fitness Over Time by Grade"),
+       subtitle = "Percentage Meeting 4 or more of 6 Fitness Tests",
        caption = "Source: Physical Fitness Test Data \n https://www.cde.ca.gov/ta/tg/pf/pftresearch.asp")
 
-ggsave(here("figs","2020","physical.png"), width = 6, height = 4)
-
-
-# Works but needs theming and colors so that MRY and CA are distinguished 
-
+ggsave(here("figs","2020","physical.png"), width = 6, height = 6)
 
 
 ### Math and ELA scores ----
@@ -403,4 +406,5 @@ ggsave(here("figs","2020",paste0(test,".png")), width = 6, height = 4)
 
 
 ### End ----
+devtools::session_info()
 
