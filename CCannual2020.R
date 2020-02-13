@@ -1,3 +1,7 @@
+#' ---
+#' output: github_document
+#' ---
+
 
 library(tidyverse)
 library(janitor)
@@ -5,6 +9,7 @@ library(here)
 library(scales)
 library(ggthemes)
 library(readxl)
+library(vroom)
 
 my_theme <- list(theme_hc(),
                  scale_fill_few() ,
@@ -17,33 +22,63 @@ my_theme <- list(theme_hc(),
 
 `%notin%` <- Negate(`%in%`)
 
+
+import_files <- function(dir,globy){
+  setwd(dir)
+  
+  files <- fs::dir_ls(glob = globy)
+  
+  print(files)
+  
+  output <- map_df(files, ~vroom(.x, .name_repair = ~ janitor::make_clean_names(., case = "upper_camel")))
+  
+  setwd(here())
+  
+  output
+}
+
+
+
+
 ### Graduation Rate ------
 
 ##  https://www.cde.ca.gov/ds/sd/sd/filesacgr.asp
 
 # 4 year cohort rate.  
 
-years <- c("1819","1617","1718")
-
-grad_all <- read.delim(here("data", "cohort1819.txt") ) %>% 
-  clean_names(case = "upper_camel") %>%
-  filter(FALSE)
 
 
-for (i in years) {
-  grad_new <- read.delim(here("data",  paste0("cohort", i, ".txt") ) ) %>% 
-    clean_names(case = "upper_camel") %>%
-    filter( (AggregateLevel == "T"  |CountyCode == 27),
-            is.na(DistrictCode),
-            ReportingCategory == "TA",
-            CharterSchool =="All",
-            Dass == "All")
-  #               filter( str_detect(CountyName,"Monterey")  )
-  
-  grad_all <- bind_rows(grad_all, grad_new)
-}
 
-grad_all <- grad_all %>% 
+# 
+# years <- c("1819","1617","1718")
+# 
+# grad_all <- read.delim(here("data", "cohort1819.txt") ) %>%
+#   clean_names(case = "upper_camel") %>%
+#   filter(FALSE)
+# 
+# 
+# for (i in years) {
+#   grad_new <- read.delim(here("data",  paste0("cohort", i, ".txt") ) ) %>%
+#     clean_names(case = "upper_camel") %>%
+#     filter( (AggregateLevel == "T"  |CountyCode == 27),
+#             is.na(DistrictCode),
+#             ReportingCategory == "TA",
+#             CharterSchool =="All",
+#             Dass == "All")
+#   #               filter( str_detect(CountyName,"Monterey")  )
+# 
+#   grad_all <- bind_rows(grad_all, grad_new)
+# }
+
+grad_vroom <- import_files(here("data","grad4"),"cohort*txt") %>%
+  filter( (AggregateLevel == "T"  |CountyCode == 27),
+          is.na(DistrictCode),
+          ReportingCategory == "TA",
+          CharterSchool =="All",
+          Dass == "All")
+
+
+grad_all <- grad_vroom %>% 
   mutate(Geo = if_else(AggregateLevel == "T", "California" ,CountyName )) %>%
   mutate_at(vars(CohortStudents:StillEnrolledRate), funs(as.numeric) ) 
   
@@ -93,6 +128,9 @@ ggsave(here("figs","2020","dropout.png"), width = 6, height = 4)
 # the Unduplicated Pupil Percentage (UPP) used in the Local Control Funding Formula (LCFF) supplemental and concentration grant calculations.
 
 ## https://www.cde.ca.gov/ds/sd/sd/filescupc.asp
+
+
+
 
 
 cupc1415 <- read_excel(here("data","cupc1415.xls"), sheet = "LEA-Level CALPADS UPC Data")%>% 
