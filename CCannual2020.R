@@ -38,8 +38,6 @@ import_files <- function(dir,globy){
 }
 
 
-
-
 ### Graduation Rate ------
 
 ##  https://www.cde.ca.gov/ds/sd/sd/filesacgr.asp
@@ -130,9 +128,6 @@ ggsave(here("figs","2020","dropout.png"), width = 6, height = 4)
 ## https://www.cde.ca.gov/ds/sd/sd/filescupc.asp
 
 
-
-
-
 cupc1415 <- read_excel(here("data","cupc1415.xls"), sheet = "LEA-Level CALPADS UPC Data")%>% 
   clean_names(case = "upper_camel")
 cupc1516 <- read_excel(here("data","cupc1516.xls"), sheet = "LEA-Level CALPADS UPC Data", range = "A3:AA2214")
@@ -212,27 +207,30 @@ ggsave(here("figs","2020","EL enrollment.png"), width = 6, height = 4)
 # https://www.cde.ca.gov/ds/sd/sd/filessd.asp
 
 
-years <- c("1112","1213","1314","1415","1516","1617","1718", "1819")
+# years <- c("1112","1213","1314","1415","1516","1617","1718", "1819")
+# 
+# susp_all <- read.delim(here("data","susp", "susp1819.txt") ) %>% 
+#   clean_names(case = "upper_camel") %>%
+#   filter(FALSE)
+# 
+# 
+# for (i in years) {
+#   susp_new <- read.delim(here("data","susp",  paste0("susp", i, ".txt") ) ) %>% 
+#     clean_names(case = "upper_camel") %>%
+#     filter( (AggregateLevel == "T"  |CountyCode == 27),
+#             is.na(DistrictCode),
+#             ReportingCategory == "TA")
+#   #               filter( str_detect(CountyName,"Monterey")  )
+#   
+#   susp_all <- bind_rows(susp_all, susp_new)
+# }
 
-susp_all <- read.delim(here("data", "susp1819.txt") ) %>% 
-  clean_names(case = "upper_camel") %>%
-  filter(FALSE)
 
-
-for (i in years) {
-  susp_new <- read.delim(here("data",  paste0("susp", i, ".txt") ) ) %>% 
-    clean_names(case = "upper_camel") %>%
-    filter( (AggregateLevel == "T"  |CountyCode == 27),
-            is.na(DistrictCode),
-            ReportingCategory == "TA")
-  #               filter( str_detect(CountyName,"Monterey")  )
-  
-  susp_all <- bind_rows(susp_all, susp_new)
-}
-
-
-susp_all <- susp_all %>%
-  filter(CharterYn == "All"|is.na(CharterYn)|CharterYn == "") %>%
+susp_vroom <- import_files(here("data","susp"),"sus*txt") %>%
+  filter( (AggregateLevel == "T"  |CountyCode == 27),
+          is.na(DistrictCode),
+          ReportingCategory == "TA",
+          CharterYn == "All"|is.na(CharterYn)|CharterYn == "") %>%
   mutate(Geo = if_else(AggregateLevel == "T", "California" ,CountyName )) %>%
   mutate_at(vars(CumulativeEnrollment:SuspensionCountDefianceOnly), funs(as.numeric) ) %>%
   mutate(SuspensionCountOfStudentsSuspendedDefianceOnly2 =  if_else(is.na(SuspensionCountOfStudentsSuspendedDefianceOnly),
@@ -241,6 +239,16 @@ susp_all <- susp_all %>%
 
 
 
+# susp_all <- susp_all %>%
+#   filter(CharterYn == "All"|is.na(CharterYn)|CharterYn == "") %>%
+#   mutate(Geo = if_else(AggregateLevel == "T", "California" ,CountyName )) %>%
+#   mutate_at(vars(CumulativeEnrollment:SuspensionCountDefianceOnly), funs(as.numeric) ) %>%
+#   mutate(SuspensionCountOfStudentsSuspendedDefianceOnly2 =  if_else(is.na(SuspensionCountOfStudentsSuspendedDefianceOnly),
+#                                                                     as.numeric( SuspensionCountDefianceOnly ) , 
+#                                                                     as.numeric( SuspensionCountOfStudentsSuspendedDefianceOnly) )  )
+
+
+susp_all <- susp_vroom
 
 ggplot(susp_all, aes(x = AcademicYear, y = SuspensionRateTotal, group = Geo, color = Geo , label = percent(SuspensionRateTotal/100, digits = 1))) +
   geom_line(size = 1.5) +
@@ -264,33 +272,48 @@ ggsave(here("figs","2020","suspension.png"), width = 6, height = 4)
 
 
 
-years <- c("1112","1213","1314","1415","1516","1617","1718", "1819")
+# years <- c("1112","1213","1314","1415","1516","1617","1718", "1819")
+# 
+# exp_all <- read.delim(here("data", "exp1819.txt") ) %>% 
+#   clean_names(case = "upper_camel") %>%
+#   filter(FALSE)
+# 
+# 
+# for (i in years) {
+#   exp_new <- read.delim(here("data", paste0("exp", i, ".txt") ) ) %>% 
+#     clean_names(case = "upper_camel") %>%
+#     filter( (AggregateLevel == "T"  |CountyCode == 27),
+#             is.na(DistrictCode),
+#             ReportingCategory == "TA",
+#             )
+#   #               filter( str_detect(CountyName,"Monterey")  )
+#   
+#   exp_all <- bind_rows(exp_all, exp_new)
+# }
+# 
 
-exp_all <- read.delim(here("data", "exp1819.txt") ) %>% 
-  clean_names(case = "upper_camel") %>%
-  filter(FALSE)
 
-
-for (i in years) {
-  exp_new <- read.delim(here("data", paste0("exp", i, ".txt") ) ) %>% 
-    clean_names(case = "upper_camel") %>%
-    filter( (AggregateLevel == "T"  |CountyCode == 27),
-            is.na(DistrictCode),
-            ReportingCategory == "TA",
-            )
-  #               filter( str_detect(CountyName,"Monterey")  )
-  
-  exp_all <- bind_rows(exp_all, exp_new)
-}
-
-
-exp_all <- exp_all %>%
+exp_vroom <- import_files(here("data","exp"),"exp*txt") %>%
+  filter( (AggregateLevel == "T"  |CountyCode == 27),
+          is.na(DistrictCode),
+          ReportingCategory == "TA",
+  )%>%
   filter(CharterYn == "All"|is.na(CharterYn)|CharterYn == "") %>%
   mutate(Geo = if_else(AggregateLevel == "T", "California" ,CountyName )) %>%
   mutate_at(vars(CumulativeEnrollment:ExpulsionCountDefianceOnly), funs(as.numeric) ) %>%
   mutate(rate = UnduplicatedCountOfStudentsExpelledTotal/CumulativeEnrollment)
 
 
+
+# 
+# exp_all <- exp_all %>%
+#   filter(CharterYn == "All"|is.na(CharterYn)|CharterYn == "") %>%
+#   mutate(Geo = if_else(AggregateLevel == "T", "California" ,CountyName )) %>%
+#   mutate_at(vars(CumulativeEnrollment:ExpulsionCountDefianceOnly), funs(as.numeric) ) %>%
+#   mutate(rate = UnduplicatedCountOfStudentsExpelledTotal/CumulativeEnrollment)
+
+
+exp_all <- exp_vroom
 
 ggplot(exp_all, aes(x = AcademicYear, y = rate, group = Geo, color = Geo , label = percent(rate, digits = 2) )) +
   geom_line(size = 1.5) +
@@ -337,7 +360,6 @@ for(y in pft.years){
       all.pft <- bind_rows(all.pft, temp)
     })
 }
-
 
 
 
