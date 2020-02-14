@@ -226,6 +226,29 @@ ggsave(here("figs","2020","EL enrollment.png"), width = 6, height = 4)
 # }
 
 
+susp.acron <- tribble(
+  ~ReportingCategory, ~StudentGroup,
+  "RB", "African American",
+  "RI", "American Indian or Alaska Native",
+  "RA", "Asian",
+  "RF", "Filipino",
+  "RH", "Hispanic or Latino",
+  "RD", "Race Not Reported",
+  "RP", "Pacific Islander",
+  "RT", "Two or More Races",
+  "RW", "White",
+  "GM", "Male",
+  "GF", "Female",
+  "SE", "English Learners",
+  "SD", "Students with Disabilities",
+  "SS", "Socioeconomically Disadvantaged",
+  "SM", "Migrant",
+  "SF", "Foster",
+  "SH", "Homeless",
+  "TA", "Total")
+
+
+
 susp_vroom <- import_files(here("data","susp"),"sus*txt") %>%
   filter( (AggregateLevel == "T"  |CountyCode == 27),
           is.na(DistrictCode),
@@ -237,6 +260,19 @@ susp_vroom <- import_files(here("data","susp"),"sus*txt") %>%
                                                                     as.numeric( SuspensionCountDefianceOnly ) , 
                                                                     as.numeric( SuspensionCountOfStudentsSuspendedDefianceOnly) )  )
 
+
+
+susp_sub <- susp_vroom %>%  
+  filter( 
+    (CountyCode == 27),
+    is.na(DistrictCode),
+    CharterYn == "All"|is.na(CharterYn)|CharterYn == "",
+    AcademicYear == max(AcademicYear)
+ ) %>%
+  mutate(Geo = if_else(AggregateLevel == "T", "California" ,CountyName )) %>%
+  mutate_at(vars(CumulativeEnrollment:SuspensionCountDefianceOnly), funs(as.numeric) ) %>%
+  left_join(susp.acron)
+  
 
 
 # susp_all <- susp_all %>%
@@ -264,6 +300,25 @@ ggplot(susp_all, aes(x = AcademicYear, y = SuspensionRateTotal, group = Geo, col
        caption = "Source: Suspension Data Files \n https://www.cde.ca.gov/ds/sd/sd/filessd.asp")
 
 ggsave(here("figs","2020","suspension.png"), width = 6, height = 4)
+
+
+
+ggplot(susp_sub, aes( y = SuspensionRateTotal, x =fct_reorder(StudentGroup, SuspensionRateTotal) ,  label = percent(SuspensionRateTotal/100, accuracy = .1))) +
+  geom_segment( aes(x=fct_reorder(StudentGroup, SuspensionRateTotal), xend=fct_reorder(StudentGroup, SuspensionRateTotal), y=0, yend=SuspensionRateTotal),
+                color="orange",
+                size =2 ) +
+  geom_point( color="orange", size=5, alpha=0.6) +
+  coord_flip() +
+  geom_text(size = 3, color = "black") +
+  theme_hc() +
+  my_theme +
+  labs(x = "",
+       y = "",
+       color ="",
+       title = ("K-12 Suspension Rates By Subgroup"), # fn("K-12 Suspension Rates Over Time"),
+       caption = "Source: Suspension Data Files \n https://www.cde.ca.gov/ds/sd/sd/filessd.asp")
+
+ggsave(here("figs","2020","suspension-subgroup.png"), width = 6, height = 7)
 
 
 ### Expulsion -------
