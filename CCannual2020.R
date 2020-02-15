@@ -207,25 +207,6 @@ ggsave(here("figs","2020","EL enrollment.png"), width = 6, height = 4)
 # https://www.cde.ca.gov/ds/sd/sd/filessd.asp
 
 
-# years <- c("1112","1213","1314","1415","1516","1617","1718", "1819")
-# 
-# susp_all <- read.delim(here("data","susp", "susp1819.txt") ) %>% 
-#   clean_names(case = "upper_camel") %>%
-#   filter(FALSE)
-# 
-# 
-# for (i in years) {
-#   susp_new <- read.delim(here("data","susp",  paste0("susp", i, ".txt") ) ) %>% 
-#     clean_names(case = "upper_camel") %>%
-#     filter( (AggregateLevel == "T"  |CountyCode == 27),
-#             is.na(DistrictCode),
-#             ReportingCategory == "TA")
-#   #               filter( str_detect(CountyName,"Monterey")  )
-#   
-#   susp_all <- bind_rows(susp_all, susp_new)
-# }
-
-
 susp.acron <- tribble(
   ~ReportingCategory, ~StudentGroup,
   "RB", "African American",
@@ -249,10 +230,9 @@ susp.acron <- tribble(
 
 
 
-susp_vroom <- import_files(here("data","susp"),"sus*txt") %>%
-  filter( (AggregateLevel == "T"  |CountyCode == 27),
+susp_vroom <- import_files(here("data","susp"),"sus*txt") %>% 
+  filter( 
           is.na(DistrictCode),
-          ReportingCategory == "TA",
           CharterYn == "All"|is.na(CharterYn)|CharterYn == "") %>%
   mutate(Geo = if_else(AggregateLevel == "T", "California" ,CountyName )) %>%
   mutate_at(vars(CumulativeEnrollment:SuspensionCountDefianceOnly), funs(as.numeric) ) %>%
@@ -261,30 +241,19 @@ susp_vroom <- import_files(here("data","susp"),"sus*txt") %>%
                                                                     as.numeric( SuspensionCountOfStudentsSuspendedDefianceOnly) )  )
 
 
+susp_all <- susp_vroom %>%
+  filter( (AggregateLevel == "T"  |CountyCode == 27),
+          ReportingCategory == "TA") 
+
 
 susp_sub <- susp_vroom %>%  
   filter( 
     (CountyCode == 27),
-    is.na(DistrictCode),
-    CharterYn == "All"|is.na(CharterYn)|CharterYn == "",
     AcademicYear == max(AcademicYear)
  ) %>%
-  mutate(Geo = if_else(AggregateLevel == "T", "California" ,CountyName )) %>%
-  mutate_at(vars(CumulativeEnrollment:SuspensionCountDefianceOnly), funs(as.numeric) ) %>%
   left_join(susp.acron)
   
 
-
-# susp_all <- susp_all %>%
-#   filter(CharterYn == "All"|is.na(CharterYn)|CharterYn == "") %>%
-#   mutate(Geo = if_else(AggregateLevel == "T", "California" ,CountyName )) %>%
-#   mutate_at(vars(CumulativeEnrollment:SuspensionCountDefianceOnly), funs(as.numeric) ) %>%
-#   mutate(SuspensionCountOfStudentsSuspendedDefianceOnly2 =  if_else(is.na(SuspensionCountOfStudentsSuspendedDefianceOnly),
-#                                                                     as.numeric( SuspensionCountDefianceOnly ) , 
-#                                                                     as.numeric( SuspensionCountOfStudentsSuspendedDefianceOnly) )  )
-
-
-susp_all <- susp_vroom
 
 ggplot(susp_all, aes(x = AcademicYear, y = SuspensionRateTotal, group = Geo, color = Geo , label = percent(SuspensionRateTotal/100, digits = 1))) +
   geom_line(size = 1.5) +
@@ -292,7 +261,6 @@ ggplot(susp_all, aes(x = AcademicYear, y = SuspensionRateTotal, group = Geo, col
   theme_hc() +
   #        coord_flip() +
   scale_color_few() +
-#  scale_y_continuous(labels = scales::percent_format(accuracy = 1), limits = c(.03,.07)) +
   labs(x = "",
        y = "",
        color ="",
@@ -326,49 +294,28 @@ ggsave(here("figs","2020","suspension-subgroup.png"), width = 6, height = 7)
 # https://www.cde.ca.gov/ds/sd/sd/filesed.asp
 
 
-
-# years <- c("1112","1213","1314","1415","1516","1617","1718", "1819")
-# 
-# exp_all <- read.delim(here("data", "exp1819.txt") ) %>% 
-#   clean_names(case = "upper_camel") %>%
-#   filter(FALSE)
-# 
-# 
-# for (i in years) {
-#   exp_new <- read.delim(here("data", paste0("exp", i, ".txt") ) ) %>% 
-#     clean_names(case = "upper_camel") %>%
-#     filter( (AggregateLevel == "T"  |CountyCode == 27),
-#             is.na(DistrictCode),
-#             ReportingCategory == "TA",
-#             )
-#   #               filter( str_detect(CountyName,"Monterey")  )
-#   
-#   exp_all <- bind_rows(exp_all, exp_new)
-# }
-# 
-
-
 exp_vroom <- import_files(here("data","exp"),"exp*txt") %>%
-  filter( (AggregateLevel == "T"  |CountyCode == 27),
-          is.na(DistrictCode),
-          ReportingCategory == "TA",
-  )%>%
   filter(CharterYn == "All"|is.na(CharterYn)|CharterYn == "") %>%
   mutate(Geo = if_else(AggregateLevel == "T", "California" ,CountyName )) %>%
   mutate_at(vars(CumulativeEnrollment:ExpulsionCountDefianceOnly), funs(as.numeric) ) %>%
   mutate(rate = UnduplicatedCountOfStudentsExpelledTotal/CumulativeEnrollment)
 
+exp_all <- exp_vroom %>%
+  filter( (AggregateLevel == "T"  |CountyCode == 27),
+          is.na(DistrictCode),
+          ReportingCategory == "TA",
+          AcademicYear == max(AcademicYear)
+  ) 
 
 
-# 
-# exp_all <- exp_all %>%
-#   filter(CharterYn == "All"|is.na(CharterYn)|CharterYn == "") %>%
-#   mutate(Geo = if_else(AggregateLevel == "T", "California" ,CountyName )) %>%
-#   mutate_at(vars(CumulativeEnrollment:ExpulsionCountDefianceOnly), funs(as.numeric) ) %>%
-#   mutate(rate = UnduplicatedCountOfStudentsExpelledTotal/CumulativeEnrollment)
+exp_sub <- exp_vroom %>%
+  filter( (CountyCode == 27),
+          is.na(DistrictCode),
+          AcademicYear == max(AcademicYear)
+  )   %>%
+  left_join(susp.acron)
 
 
-exp_all <- exp_vroom
 
 ggplot(exp_all, aes(x = AcademicYear, y = rate, group = Geo, color = Geo , label = percent(rate, digits = 2) )) +
   geom_line(size = 1.5) +
@@ -383,6 +330,26 @@ ggplot(exp_all, aes(x = AcademicYear, y = rate, group = Geo, color = Geo , label
        caption = "Source: Expulsion Data Files \n https://www.cde.ca.gov/ds/sd/sd/filesed.asp")
 
 ggsave(here("figs","2020","expulsion.png"), width = 6, height = 4)
+
+
+
+
+ggplot(exp_sub, aes( y = rate, x =fct_reorder(StudentGroup, rate) ,  label = percent(rate, accuracy = .01))) +
+  geom_segment( aes(x=fct_reorder(StudentGroup, rate), xend=fct_reorder(StudentGroup, rate), y=0, yend=rate),
+                color="orange",
+                size =2 ) +
+  geom_point( color="orange", size=5, alpha=0.6) +
+  coord_flip() +
+  geom_text(size = 3, color = "black") +
+  theme_hc() +
+  my_theme +
+  labs(x = "",
+       y = "",
+       color ="",
+       title = ("K-12 Expulsion Rates By Subgroup"), # fn("K-12 Suspension Rates Over Time"),
+       caption = "Source: Expulsion Data Files \n https://www.cde.ca.gov/ds/sd/sd/filesed.asp")
+
+ggsave(here("figs","2020","expulsion-subgroup.png"), width = 6, height = 7)
 
 
 ### Physical Fitness -----
