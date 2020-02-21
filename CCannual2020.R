@@ -10,6 +10,8 @@ library(scales)
 library(ggthemes)
 library(readxl)
 library(vroom)
+library(rvest)
+library(xml2)
 
 my_theme <- list(theme_hc(),
                  scale_fill_few() ,
@@ -68,17 +70,17 @@ import_files <- function(dir,globy){
 #   grad_all <- bind_rows(grad_all, grad_new)
 # }
 
-grad_vroom <- import_files(here("data","grad4"),"cohort*txt") %>%
+grad_vroom <- import_files(here("data","grad4"),"cohort*txt") 
+
+
+grad_all <- grad_vroom %>% 
+  mutate(Geo = if_else(AggregateLevel == "T", "California" ,CountyName )) %>%
+  mutate_at(vars(CohortStudents:StillEnrolledRate), funs(as.numeric) ) %>%
   filter( (AggregateLevel == "T"  |CountyCode == 27),
           is.na(DistrictCode),
           ReportingCategory == "TA",
           CharterSchool =="All",
           Dass == "All")
-
-
-grad_all <- grad_vroom %>% 
-  mutate(Geo = if_else(AggregateLevel == "T", "California" ,CountyName )) %>%
-  mutate_at(vars(CohortStudents:StillEnrolledRate), funs(as.numeric) ) 
   
   
 
@@ -103,6 +105,21 @@ ggsave(here("figs","2020","graduation.png"), width = 6, height = 4)
 ##  https://www.cde.ca.gov/ds/sd/sd/filesacgr.asp
 
 
+drop_sub <- grad_vroom %>% 
+#  mutate(Geo = if_else(AggregateLevel == "T", "California" ,CountyName )) %>%
+  mutate_at(vars(CohortStudents:StillEnrolledRate), funs(as.numeric) ) %>%
+  filter( (CountyCode == 27),
+          is.na(DistrictCode),
+          AcademicYear == max(AcademicYear),
+  #        ReportingCategory == "TA",
+          CharterSchool =="All",
+          Dass == "All") %>%
+  left_join(susp.acron)
+
+
+
+
+
 ggplot(grad_all, aes(x = AcademicYear, y = DropoutRate/100, group = Geo, color = Geo , label=percent(DropoutRate/100, digits = 0) )) +
   geom_line(size = 1.5) +
   geom_text(data = grad_all %>% filter(AcademicYear == max(AcademicYear)) , size = 3, color = "black") +
@@ -118,6 +135,23 @@ ggplot(grad_all, aes(x = AcademicYear, y = DropoutRate/100, group = Geo, color =
        caption = "Source: Adjusted Cohort Outcome Data \n https://www.cde.ca.gov/ds/sd/sd/filesacgr.asp") 
 
 ggsave(here("figs","2020","dropout.png"), width = 6, height = 4)
+
+
+ggplot(drop_sub, aes( y = DropoutRate, x =fct_reorder(StudentGroup, DropoutRate) ,  label = percent(DropoutRate/100, accuracy = .1))) +
+  geom_segment( aes(x=fct_reorder(StudentGroup, DropoutRate), xend=fct_reorder(StudentGroup, DropoutRate), y=0, yend=DropoutRate),
+                color="orange",
+                size =2 ) +
+  geom_point( color="orange", size=5, alpha=0.6) +
+  coord_flip() +
+  geom_text(size = 3, color = "black") +
+  theme_hc() +
+  my_theme +
+  labs(x = "",
+       y = "",
+       color ="",
+       title = ("Dropout Rates by Student Group"),
+       caption = "Source: Adjusted Cohort Outcome Data \n https://www.cde.ca.gov/ds/sd/sd/filesacgr.asp") 
+
 
 
 ### Enrollment -------
@@ -184,7 +218,48 @@ ggsave(here("figs","2020","EL enrollment.png"), width = 6, height = 4)
 
 
 
+#  Special Education Enrollment
 
+
+sped.count <- function(yr) {
+  
+  url <- paste0("https://data1.cde.ca.gov/dataquest/SpecEd/SEEnrEthDis2.asp?cChoice=SEEthDis2&cYear=",yr,"&TheCounty=27,MONTEREY&clevel=County&ReptCycle=December")
+  
+  
+  table <- xml2::read_html(url) %>%
+    html_nodes( xpath = "/html/body/center[3]/table") %>%
+    html_table(fill = TRUE) %>%
+    flatten() %>%
+    as_tibble(.name_repair = "unique")
+  
+  table[22,15] %>% 
+    simplify() 
+}  # Goes to URL, uses year to pull out total SPED kids that year 
+
+
+
+sped <- tibble( year = c("2011-12", "2012-13" , "2013-14" ,"2014-15", "2015-16" , "2016-17", "2017-18", "2018-19"))
+
+sped <- sped %>% mutate(value = map(year, sped.count) %>%   # use function for all the years 
+                          simplify() %>%    
+                          gsub(",","", .  ) %>%
+                          as.numeric()  ) %>%    # to get a number out rathe than a list or character with a comma
+  mutate(Geo = "Monterey County")  # create a group for graphing
+
+
+ggplot(sped, aes(x = year, y = value, group = Geo, label=comma( value) )) +
+  geom_line(size = 1.5) +
+  geom_label( size = 3, color = "black") +
+  theme_hc() +
+  scale_color_few() +
+  scale_y_continuous(labels = comma_format(), limits = c(5000,10000)) +
+  labs(x = "",
+       y = "",
+       color ="",
+       title = ("Special Education Enrollment in Monterey County"),
+       caption = "Source: DataQuest \n https://data1.cde.ca.gov/dataquest/SpecEd/SEEnrEthDis2.asp?cChoice=SEEthDis2&\ncYear=2018-19&TheCounty=27,MONTEREY&clevel=County&ReptCycle=December") 
+
+ggsave(here("figs","2020","SPED enrollment.png"), width = 6, height = 4)
 
 ### Kindergarten Readiness -----
 
