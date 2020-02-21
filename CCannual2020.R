@@ -40,6 +40,31 @@ import_files <- function(dir,globy){
 }
 
 
+
+susp.acron <- tribble(
+  ~ReportingCategory, ~StudentGroup,
+  "RB", "African American",
+  "RI", "American Indian or Alaska Native",
+  "RA", "Asian",
+  "RF", "Filipino",
+  "RH", "Hispanic or Latino",
+  "RD", "Race Not Reported",
+  "RP", "Pacific Islander",
+  "RT", "Two or More Races",
+  "RW", "White",
+  "GM", "Male",
+  "GF", "Female",
+  "SE", "English Learners",
+  "SD", "Students with Disabilities",
+  "SS", "Socioeconomically Disadvantaged",
+  "SM", "Migrant",
+  "SF", "Foster",
+  "SH", "Homeless",
+  "TA", "Total")
+
+
+
+
 ### Graduation Rate ------
 
 ##  https://www.cde.ca.gov/ds/sd/sd/filesacgr.asp
@@ -152,6 +177,7 @@ ggplot(drop_sub, aes( y = DropoutRate, x =fct_reorder(StudentGroup, DropoutRate)
        title = ("Dropout Rates by Student Group"),
        caption = "Source: Adjusted Cohort Outcome Data \n https://www.cde.ca.gov/ds/sd/sd/filesacgr.asp") 
 
+ggsave(here("figs","2020","drop-subgroup.png"), width = 6, height = 7)
 
 
 ### Enrollment -------
@@ -280,28 +306,6 @@ ggsave(here("figs","2020","SPED enrollment.png"), width = 6, height = 4)
 ### Suspension ------
 
 # https://www.cde.ca.gov/ds/sd/sd/filessd.asp
-
-
-susp.acron <- tribble(
-  ~ReportingCategory, ~StudentGroup,
-  "RB", "African American",
-  "RI", "American Indian or Alaska Native",
-  "RA", "Asian",
-  "RF", "Filipino",
-  "RH", "Hispanic or Latino",
-  "RD", "Race Not Reported",
-  "RP", "Pacific Islander",
-  "RT", "Two or More Races",
-  "RW", "White",
-  "GM", "Male",
-  "GF", "Female",
-  "SE", "English Learners",
-  "SD", "Students with Disabilities",
-  "SS", "Socioeconomically Disadvantaged",
-  "SM", "Migrant",
-  "SF", "Foster",
-  "SH", "Homeless",
-  "TA", "Total")
 
 
 
@@ -561,6 +565,41 @@ sbac.filtered %>%
 
 ggsave(here("figs","2020",paste0(test,".png")), width = 6, height = 4)
 
+
+
+### EL Reclassification ----
+
+
+setwd(here("data","reclass"))
+
+files <- fs::dir_ls()
+
+el_vroom <- vroom(files, id = "year")
+
+setwd(here())
+
+el_dist <- el_vroom %>%
+  filter( str_detect(CDS,"^27"  )) %>%
+  mutate(year = str_extract_all(year, "\\d{1,2}") %>% simplify() ) %>%
+  group_by(year) %>%
+  transmute(value = sum(Reclass)) %>%
+  distinct()
+
+
+el_dist %>%
+  mutate(Geo = "Monterey County") %>%
+  ggplot( aes(x = year, y = value,  label=comma( value) , group = Geo)) +
+  geom_line(size = 1.5) +
+  geom_label( size = 3, color = "black") +
+  theme_hc() +
+  scale_color_few() +
+  scale_y_continuous(labels = comma_format(), limits = c(0,5000)) +
+  labs(x = "",
+       y = "",
+       color ="",
+       title = ("Reclassified "),
+       caption = #"Source: Unduplicated Pupil Count \n https://www.cde.ca.gov/ds/sd/sd/filescupc.asp"
+       ) 
 
 ### End ----
 devtools::session_info()
