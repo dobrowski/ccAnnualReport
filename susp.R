@@ -4,6 +4,7 @@
 library(vroom)
 library(here)
 library(purrr)
+library(fs)
 
 setwd(here( "data"))
 files <- fs::dir_ls(glob = "susp*txt")

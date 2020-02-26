@@ -67,33 +67,8 @@ susp.acron <- tribble(
 
 ### Graduation Rate ------
 
-##  https://www.cde.ca.gov/ds/sd/sd/filesacgr.asp
-
+#  https://www.cde.ca.gov/ds/sd/sd/filesacgr.asp
 # 4 year cohort rate.  
-
-
-
-
-# 
-# years <- c("1819","1617","1718")
-# 
-# grad_all <- read.delim(here("data", "cohort1819.txt") ) %>%
-#   clean_names(case = "upper_camel") %>%
-#   filter(FALSE)
-# 
-# 
-# for (i in years) {
-#   grad_new <- read.delim(here("data",  paste0("cohort", i, ".txt") ) ) %>%
-#     clean_names(case = "upper_camel") %>%
-#     filter( (AggregateLevel == "T"  |CountyCode == 27),
-#             is.na(DistrictCode),
-#             ReportingCategory == "TA",
-#             CharterSchool =="All",
-#             Dass == "All")
-#   #               filter( str_detect(CountyName,"Monterey")  )
-# 
-#   grad_all <- bind_rows(grad_all, grad_new)
-# }
 
 grad_vroom <- import_files(here("data","grad4"),"cohort*txt") 
 
