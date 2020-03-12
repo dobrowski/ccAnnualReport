@@ -25,6 +25,18 @@ my_theme <- list(theme_hc(),
 `%notin%` <- Negate(`%in%`)
 
 
+round2 = function(x, digits) {
+  posneg = sign(x)
+  z = abs(x)*10^digits
+  z = z + 0.5
+  z = trunc(z)
+  z = z/10^digits
+  z*posneg
+}
+
+
+
+
 import_files <- function(dir,globy){
   setwd(dir)
   
