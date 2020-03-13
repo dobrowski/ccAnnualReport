@@ -611,6 +611,7 @@ sbac.filtered %>%
   geom_point( color="orange", size=5, alpha=0.6) +
   coord_flip() +
   geom_text(size = 3, color = "black") +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
   facet_grid(facets = vars(`Student Group`), scales = "free" ) +
   theme_hc() +
   my_theme +
@@ -659,6 +660,7 @@ sbac.filtered %>%
   coord_flip() +
   geom_text(size = 3, color = "black") +
   facet_grid(facets = vars(`Student Group`), scales = "free" ) +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
   theme_hc() +
   my_theme +
   labs(x = "",
