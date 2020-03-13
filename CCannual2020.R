@@ -317,7 +317,12 @@ susp_sub <- susp_vroom %>%
     (CountyCode == 27),
     AcademicYear == max(AcademicYear)
  ) %>%
-  left_join(susp.acron)
+  left_join(susp.acron) %>%
+  mutate(StudentGroupCategory = str_extract(ReportingCategory ,"[:alpha:]{1,1}"  )) %>%
+  mutate(StudentGroupCategory = case_when(StudentGroupCategory == "G" ~ "Gender",
+                                          StudentGroupCategory == "R" ~ "Race/Ethnicity",
+                                          StudentGroupCategory == "S" ~ "Student Group")) %>%
+  filter(ReportingCategory != "TA")
   
 
 
@@ -342,6 +347,7 @@ ggplot(susp_sub, aes( y = SuspensionRateTotal, x =fct_reorder(StudentGroup, Susp
                 color="orange",
                 size =2 ) +
   geom_point( color="orange", size=5, alpha=0.6) +
+  facet_grid(facets = vars(StudentGroupCategory), scales = "free" ) +
   coord_flip() +
   geom_text(size = 3, color = "black") +
   theme_hc() +
