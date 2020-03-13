@@ -132,14 +132,15 @@ ggsave(here("figs","2020","graduation.png"), width = 6, height = 4)
 
 
 
-ggplot(grad_sub, aes( y = RegularHsDiplomaGraduatesRate, x =fct_reorder(StudentGroup, RegularHsDiplomaGraduatesRate) ,  label = percent(RegularHsDiplomaGraduatesRate/100, accuracy = .1))) +
-  geom_segment( aes(x=fct_reorder(StudentGroup, RegularHsDiplomaGraduatesRate), xend=fct_reorder(StudentGroup, RegularHsDiplomaGraduatesRate), y=0, yend=RegularHsDiplomaGraduatesRate),
+ggplot(grad_sub, aes( y = RegularHsDiplomaGraduatesRate/100, x =fct_reorder(StudentGroup, RegularHsDiplomaGraduatesRate) ,  label = percent(RegularHsDiplomaGraduatesRate/100, accuracy = .1))) +
+  geom_segment( aes(x=fct_reorder(StudentGroup, RegularHsDiplomaGraduatesRate), xend=fct_reorder(StudentGroup, RegularHsDiplomaGraduatesRate), y=0, yend=RegularHsDiplomaGraduatesRate/100),
                 color="orange",
                 size =2 ) +
   geom_point( color="orange", size=5, alpha=0.6) +
   coord_flip() +
   geom_text(size = 3, color = "black") +
   facet_grid(facets = vars(StudentGroupCategory), scales = "free" ) +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
   theme_hc() +
   my_theme +
   labs(x = "",
@@ -198,14 +199,15 @@ ggplot(grad_all, aes(x = AcademicYear, y = DropoutRate/100, group = Geo, color =
 ggsave(here("figs","2020","dropout.png"), width = 6, height = 4)
 
 
-ggplot(drop_sub, aes( y = DropoutRate, x =fct_reorder(StudentGroup, DropoutRate) ,  label = percent(DropoutRate/100, accuracy = .1))) +
-  geom_segment( aes(x=fct_reorder(StudentGroup, DropoutRate), xend=fct_reorder(StudentGroup, DropoutRate), y=0, yend=DropoutRate),
+ggplot(drop_sub, aes( y = DropoutRate/100, x =fct_reorder(StudentGroup, DropoutRate) ,  label = percent(DropoutRate/100, accuracy = .1))) +
+  geom_segment( aes(x=fct_reorder(StudentGroup, DropoutRate), xend=fct_reorder(StudentGroup, DropoutRate), y=0, yend=DropoutRate/100),
                 color="orange",
                 size =2 ) +
   geom_point( color="orange", size=5, alpha=0.6) +
   coord_flip() +
   geom_text(size = 3, color = "black") +
   facet_grid(facets = vars(StudentGroupCategory), scales = "free" ) +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
   theme_hc() +
   my_theme +
   labs(x = "",
@@ -392,14 +394,15 @@ ggsave(here("figs","2020","suspension.png"), width = 6, height = 4)
 
 
 
-ggplot(susp_sub, aes( y = SuspensionRateTotal, x =fct_reorder(StudentGroup, SuspensionRateTotal) ,  label = percent(SuspensionRateTotal/100, accuracy = .1))) +
-  geom_segment( aes(x=fct_reorder(StudentGroup, SuspensionRateTotal), xend=fct_reorder(StudentGroup, SuspensionRateTotal), y=0, yend=SuspensionRateTotal),
+ggplot(susp_sub, aes( y = SuspensionRateTotal/100, x =fct_reorder(StudentGroup, SuspensionRateTotal) ,  label = percent(SuspensionRateTotal/100, accuracy = .1))) +
+  geom_segment( aes(x=fct_reorder(StudentGroup, SuspensionRateTotal), xend=fct_reorder(StudentGroup, SuspensionRateTotal), y=0, yend=SuspensionRateTotal/100),
                 color="orange",
                 size =2 ) +
   geom_point( color="orange", size=5, alpha=0.6) +
   facet_grid(facets = vars(StudentGroupCategory), scales = "free" ) +
   coord_flip() +
   geom_text(size = 3, color = "black") +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
   theme_hc() +
   my_theme +
   labs(x = "",
@@ -420,13 +423,13 @@ exp_vroom <- import_files(here("data","exp"),"exp*txt") %>%
   filter(CharterYn == "All"|is.na(CharterYn)|CharterYn == "") %>%
   mutate(Geo = if_else(AggregateLevel == "T", "California" ,CountyName )) %>%
   mutate_at(vars(CumulativeEnrollment:ExpulsionCountDefianceOnly), funs(as.numeric) ) %>%
-  mutate(rate = UnduplicatedCountOfStudentsExpelledTotal/CumulativeEnrollment)
+  mutate(rate = (1000*UnduplicatedCountOfStudentsExpelledTotal/CumulativeEnrollment))
 
 exp_all <- exp_vroom %>%
   filter( (AggregateLevel == "T"  |CountyCode == 27),
           is.na(DistrictCode),
           ReportingCategory == "TA",
-          AcademicYear == max(AcademicYear)
+   #       AcademicYear == max(AcademicYear)
   ) 
 
 
@@ -444,16 +447,16 @@ exp_sub <- exp_vroom %>%
 
 
 
-ggplot(exp_all, aes(x = AcademicYear, y = rate, group = Geo, color = Geo , label = percent(rate, digits = 2) )) +
+ggplot(exp_all, aes(x = AcademicYear, y = rate, group = Geo, color = Geo , label = round2( rate, 2) )) +
   geom_line(size = 1.5) +
   geom_text(data = exp_all %>% filter(AcademicYear == max(AcademicYear)) , size = 3, color = "black") +
   theme_hc() +
   scale_color_few() +
-  scale_y_continuous(labels = scales::percent_format(accuracy = .01), limits = c(0,0.002)) +
+ # scale_y_continuous(labels = scales::percent_format(accuracy = .01), limits = c(0,0.002)) +
   labs(x = "",
        y = "",
        color ="",
-       title =  ("K-12 Expulsion Rates Over Time"), #fn("K-12 Expulsion Rates Over Time"),
+       title =  ("K-12 Expulsion Rates per 1,000 Over Time"), #fn("K-12 Expulsion Rates Over Time"),
        caption = "Source: Expulsion Data Files \n https://www.cde.ca.gov/ds/sd/sd/filesed.asp")
 
 ggsave(here("figs","2020","expulsion.png"), width = 6, height = 4)
@@ -461,7 +464,7 @@ ggsave(here("figs","2020","expulsion.png"), width = 6, height = 4)
 
 
 
-ggplot(exp_sub, aes( y = rate, x =fct_reorder(StudentGroup, rate) ,  label = percent(rate, accuracy = .01))) +
+ggplot(exp_sub, aes( y = rate, x =fct_reorder(StudentGroup, rate) ,  label = round2( rate, 2) )) +
   geom_segment( aes(x=fct_reorder(StudentGroup, rate), xend=fct_reorder(StudentGroup, rate), y=0, yend=rate),
                 color="orange",
                 size =2 ) +
@@ -474,7 +477,7 @@ ggplot(exp_sub, aes( y = rate, x =fct_reorder(StudentGroup, rate) ,  label = per
   labs(x = "",
        y = "",
        color ="",
-       title = ("K-12 Expulsion Rates By Subgroup"), # fn("K-12 Suspension Rates Over Time"),
+       title = ("K-12 Expulsion Rates per 1,000 By Subgroup"), # fn("K-12 Suspension Rates Over Time"),
        caption = "Source: Expulsion Data Files \n https://www.cde.ca.gov/ds/sd/sd/filesed.asp")
 
 ggsave(here("figs","2020","expulsion-subgroup.png"), width = 6, height = 7)
