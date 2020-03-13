@@ -94,7 +94,25 @@ grad_all <- grad_vroom %>%
           CharterSchool =="All",
           Dass == "All")
   
-  
+
+grad_sub <- grad_vroom %>% 
+  #  mutate(Geo = if_else(AggregateLevel == "T", "California" ,CountyName )) %>%
+  mutate_at(vars(CohortStudents:StillEnrolledRate), funs(as.numeric) ) %>%
+  filter( (CountyCode == 27),
+          is.na(DistrictCode),
+          AcademicYear == max(AcademicYear),
+          #        ReportingCategory == "TA",
+          CharterSchool =="All",
+          Dass == "All") %>%
+  left_join(susp.acron)  %>%
+  mutate(StudentGroupCategory = str_extract(ReportingCategory ,"[:alpha:]{1,1}"  )) %>%
+  mutate(StudentGroupCategory = case_when(StudentGroupCategory == "G" ~ "Gender",
+                                          StudentGroupCategory == "R" ~ "Race/Ethnicity",
+                                          StudentGroupCategory == "S" ~ "Student Group")) %>%
+  filter(ReportingCategory != "TA")
+
+
+
 
 
 ggplot(grad_all, aes(x = AcademicYear, y = RegularHsDiplomaGraduatesRate/100, group = Geo, color = Geo , label=percent(RegularHsDiplomaGraduatesRate/100, digits = 0) )) +
@@ -111,6 +129,32 @@ ggplot(grad_all, aes(x = AcademicYear, y = RegularHsDiplomaGraduatesRate/100, gr
        caption = "Source: Adjusted Cohort Outcome Data \n https://www.cde.ca.gov/ds/sd/sd/filesacgr.asp") 
 
 ggsave(here("figs","2020","graduation.png"), width = 6, height = 4)
+
+
+
+ggplot(grad_sub, aes( y = RegularHsDiplomaGraduatesRate, x =fct_reorder(StudentGroup, RegularHsDiplomaGraduatesRate) ,  label = percent(RegularHsDiplomaGraduatesRate/100, accuracy = .1))) +
+  geom_segment( aes(x=fct_reorder(StudentGroup, RegularHsDiplomaGraduatesRate), xend=fct_reorder(StudentGroup, RegularHsDiplomaGraduatesRate), y=0, yend=RegularHsDiplomaGraduatesRate),
+                color="orange",
+                size =2 ) +
+  geom_point( color="orange", size=5, alpha=0.6) +
+  coord_flip() +
+  geom_text(size = 3, color = "black") +
+  facet_grid(facets = vars(StudentGroupCategory), scales = "free" ) +
+  theme_hc() +
+  my_theme +
+  labs(x = "",
+       y = "",
+       color ="",
+       title = ("Graduation Rates by Student Group"),
+       caption = "Source: Adjusted Cohort Outcome Data \n https://www.cde.ca.gov/ds/sd/sd/filesacgr.asp") 
+
+ggsave(here("figs","2020","grad-subgroup.png"), width = 6, height = 7)
+
+
+
+
+
+
 
 ### Dropout Rate ------
 
@@ -156,6 +200,7 @@ ggplot(drop_sub, aes( y = DropoutRate, x =fct_reorder(StudentGroup, DropoutRate)
   geom_point( color="orange", size=5, alpha=0.6) +
   coord_flip() +
   geom_text(size = 3, color = "black") +
+  facet_grid(facets = vars(StudentGroupCategory), scales = "free" ) +
   theme_hc() +
   my_theme +
   labs(x = "",
@@ -385,7 +430,12 @@ exp_sub <- exp_vroom %>%
           is.na(DistrictCode),
           AcademicYear == max(AcademicYear)
   )   %>%
-  left_join(susp.acron)
+  left_join(susp.acron) %>%
+  mutate(StudentGroupCategory = str_extract(ReportingCategory ,"[:alpha:]{1,1}"  )) %>%
+  mutate(StudentGroupCategory = case_when(StudentGroupCategory == "G" ~ "Gender",
+                                          StudentGroupCategory == "R" ~ "Race/Ethnicity",
+                                          StudentGroupCategory == "S" ~ "Student Group")) %>%
+  filter(ReportingCategory != "TA")
 
 
 
@@ -411,6 +461,7 @@ ggplot(exp_sub, aes( y = rate, x =fct_reorder(StudentGroup, rate) ,  label = per
                 color="orange",
                 size =2 ) +
   geom_point( color="orange", size=5, alpha=0.6) +
+  facet_grid(facets = vars(StudentGroupCategory), scales = "free" ) +
   coord_flip() +
   geom_text(size = 3, color = "black") +
   theme_hc() +
@@ -543,7 +594,7 @@ ggsave(here("figs","2020",paste0(test,".png")), width = 6, height = 4)
 sbac.filtered %>%
   filter(TestID == test,
          Year == max(Year),
-         `County Code` == "00",
+         `County Code` == "27",
         `Subgroup ID` < 200 &`Subgroup ID` %notin% c(190,212)) %>% # `Demographic Name`
   ggplot( aes( y = value/100, x =fct_reorder(`Demographic Name`, value) ,  label = percent(value/100, accuracy = .1))) +
   geom_segment( aes(x=fct_reorder(`Demographic Name`, value/100), xend=fct_reorder(`Demographic Name`, value/100), y=0, yend=value/100),
@@ -552,6 +603,7 @@ sbac.filtered %>%
   geom_point( color="orange", size=5, alpha=0.6) +
   coord_flip() +
   geom_text(size = 3, color = "black") +
+  facet_grid(facets = vars(`Student Group`), scales = "free" ) +
   theme_hc() +
   my_theme +
   labs(x = "",
@@ -560,7 +612,7 @@ sbac.filtered %>%
        title = (paste0(test, " Percentage Meeting and Exceeding Rates by Student Group")),
        caption = "Source: CAASPP Research Files \n https://caaspp-elpac.cde.ca.gov/caaspp/ResearchFileList")
 
-ggsave(here("figs","2020",paste0(test,"-sub.png")), width = 8, height = 8)
+ggsave(here("figs","2020",paste0(test,"-sub.png")), width = 8, height = 11)
 
 
 test <- "Math"
@@ -589,7 +641,7 @@ ggsave(here("figs","2020",paste0(test,".png")), width = 6, height = 4)
 sbac.filtered %>%
   filter(TestID == test,
          Year == max(Year),
-         `County Code` == "00",
+         `County Code` == "27",
          `Subgroup ID` < 200 &`Subgroup ID` %notin% c(190,212)) %>% # `Demographic Name`
   ggplot( aes( y = value/100, x =fct_reorder(`Demographic Name`, value) ,  label = percent(value/100, accuracy = .1))) +
   geom_segment( aes(x=fct_reorder(`Demographic Name`, value/100), xend=fct_reorder(`Demographic Name`, value/100), y=0, yend=value/100),
@@ -598,6 +650,7 @@ sbac.filtered %>%
   geom_point( color="orange", size=5, alpha=0.6) +
   coord_flip() +
   geom_text(size = 3, color = "black") +
+  facet_grid(facets = vars(`Student Group`), scales = "free" ) +
   theme_hc() +
   my_theme +
   labs(x = "",
@@ -606,7 +659,7 @@ sbac.filtered %>%
        title = (paste0(test, " Percentage Meeting and Exceeding Rates by Student Group")),
        caption = "Source: CAASPP Research Files \n https://caaspp-elpac.cde.ca.gov/caaspp/ResearchFileList")
 
-ggsave(here("figs","2020",paste0(test,"-sub.png")), width = 8, height = 8)
+ggsave(here("figs","2020",paste0(test,"-sub.png")), width = 8, height = 11)
 
 
 ### EL Reclassification ----
