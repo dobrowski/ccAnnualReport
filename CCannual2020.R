@@ -170,7 +170,12 @@ drop_sub <- grad_vroom %>%
   #        ReportingCategory == "TA",
           CharterSchool =="All",
           Dass == "All") %>%
-  left_join(susp.acron)
+  left_join(susp.acron)  %>%
+  mutate(StudentGroupCategory = str_extract(ReportingCategory ,"[:alpha:]{1,1}"  )) %>%
+  mutate(StudentGroupCategory = case_when(StudentGroupCategory == "G" ~ "Gender",
+                                          StudentGroupCategory == "R" ~ "Race/Ethnicity",
+                                          StudentGroupCategory == "S" ~ "Student Group")) %>%
+  filter(ReportingCategory != "TA")
 
 
 
