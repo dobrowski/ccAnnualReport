@@ -121,13 +121,15 @@ grad_sub <- grad_vroom %>%
 
 
 
-ggplot(grad_all, aes(x = AcademicYear, y = RegularHsDiplomaGraduatesRate/100, group = Geo, color = Geo , label=percent(RegularHsDiplomaGraduatesRate/100, digits = 0) )) +
+ggplot(grad_all, aes(x = AcademicYear, y = RegularHsDiplomaGraduatesRate/100 , group = Geo, color = Geo , linetype = Geo, label=percent(RegularHsDiplomaGraduatesRate/100, digits = 0) )) +
   geom_line(size = 1.5) +
   geom_label(data = grad_all %>% filter(AcademicYear == max(AcademicYear)) , size = 3, color = "black") +
   theme_hc() +
   #        coord_flip() +
   scale_color_few() +
   scale_y_continuous(labels = percent_format(accuracy = 1), limits = c(.7,.9)) +
+  scale_linetype_manual(values =  c("dashed", "solid")) +
+  guides(linetype = FALSE) +
   labs(x = "",
        y = "",
        color ="",
