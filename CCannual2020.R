@@ -21,8 +21,14 @@ my_theme <- list(theme_hc(),
                       y = "",
                       fill ="") )
 
-
 `%notin%` <- Negate(`%in%`)
+my_theme <- list(theme_hc(),
+                 scale_fill_few() ,
+                 #           geom_text(size = 2, position = position_dodge(width = 1)),
+                 theme(plot.title.position = "plot"),
+                 labs(x = "",
+                      y = "",
+                      fill ="") )
 
 
 round2 = function(x, digits) {
@@ -117,7 +123,7 @@ grad_sub <- grad_vroom %>%
 
 ggplot(grad_all, aes(x = AcademicYear, y = RegularHsDiplomaGraduatesRate/100, group = Geo, color = Geo , label=percent(RegularHsDiplomaGraduatesRate/100, digits = 0) )) +
   geom_line(size = 1.5) +
-  geom_text(data = grad_all %>% filter(AcademicYear == max(AcademicYear)) , size = 3, color = "black") +
+  geom_label(data = grad_all %>% filter(AcademicYear == max(AcademicYear)) , size = 3, color = "black") +
   theme_hc() +
   #        coord_flip() +
   scale_color_few() +
@@ -128,7 +134,7 @@ ggplot(grad_all, aes(x = AcademicYear, y = RegularHsDiplomaGraduatesRate/100, gr
        title = ("Graduation Rates Over Time"),
        caption = "Source: Adjusted Cohort Outcome Data \n https://www.cde.ca.gov/ds/sd/sd/filesacgr.asp") 
 
-ggsave(here("figs","2020","graduation.png"), width = 6, height = 4)
+ggsave(here("figs","2020","graduationRate.png"), width = 6, height = 7)
 
 
 
@@ -184,8 +190,8 @@ drop_sub <- grad_vroom %>%
 
 ggplot(grad_all, aes(x = AcademicYear, y = DropoutRate/100, group = Geo, color = Geo , label=percent(DropoutRate/100, digits = 0) )) +
   geom_line(size = 1.5) +
-  geom_text(data = grad_all %>% filter(AcademicYear == max(AcademicYear)) , size = 3, color = "black") +
-  theme_hc() +
+  geom_label(data = grad_all %>% filter(AcademicYear == max(AcademicYear)) , size = 3, color = "black") +
+  theme_hc() +  
   #        coord_flip() +
   scale_color_few() +
   my_theme +
@@ -378,9 +384,9 @@ susp_sub <- susp_vroom %>%
   
 
 
-ggplot(susp_all, aes(x = AcademicYear, y = SuspensionRateTotal, group = Geo, color = Geo , label = percent(SuspensionRateTotal/100, digits = 1))) +
+ggplot(susp_all, aes(x = AcademicYear, y = SuspensionRateTotal, group = Geo, color = Geo , label = percent(SuspensionRateTotal/100, accuracy = .01, digits = 1))) +
   geom_line(size = 1.5) +
-  geom_text(data = susp_all %>% filter(AcademicYear == max(AcademicYear)) , size = 3, color = "black") +
+  geom_label(data = susp_all %>% filter(AcademicYear == max(AcademicYear)) , size = 3, color = "black") +
   theme_hc() +
   #        coord_flip() +
   scale_color_few() +
