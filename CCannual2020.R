@@ -159,12 +159,45 @@ ggplot(grad_sub, aes( y = RegularHsDiplomaGraduatesRate/100, x =fct_reorder(Stud
 
 ggsave(here("figs","2020","grad-subgroup.png"), width = 6, height = 7)
 
+#College Going Rate ------
+
+### https://www.cde.ca.gov/ds/sd/sd/filescgr12.asp
 
 
+cgr15 <- read_tsv(here("data","cgr","cgr12mo15.txt"))
+cgr16 <- read_tsv(here("data","cgr","cgr12mo16.txt"))
+cgr17 <- read_tsv(here("data","cgr","cgr12mo17.txt"))
+cgr18 <- read_tsv(here("data","cgr","cgr12mo18.txt"))
 
+cgr4_yr <- list(cgr15, cgr16, cgr17, cgr18) %>% bind_rows()
 
+cgr_all <- cgr4_yr %>% mutate(Geo = if_else(AggregateLevel == "T", "California" , CountyName)) %>%
+  mutate(CGR12 = `College Going Rate - Total (12 Months)`, CGR12 = as.numeric(CGR12))%>%
+  select(AcademicYear, AggregateLevel,CountyCode,CountyName, CharterSchool:CompleterType, Geo, CGR12) %>%
+  filter( AggregateLevel %in% c("T", "C"),
+          CountyCode %in% c("27","00"), 
+          ReportingCategory == "TA",
+          CharterSchool =="All",
+          AlternativeSchoolAccountabilityStatus == "All",
+          CompleterType =="TA")
 
+ggplot(cgr_all, aes(x = AcademicYear, y = CGR12/100, group = Geo, color = Geo , linetype = Geo, label= percent(CGR12/100, accuracy = .1)) ) +
+  geom_line(size = 1.5) +
+  geom_label(data = cgr_all %>% filter(AcademicYear == max(AcademicYear)) , size = 3, color = "black") +
+  theme_hc() +
+  #        coord_flip() +
+  scale_color_few() +
+  scale_y_continuous(labels = percent_format(accuracy = 1), limits = c(.5,.7)) +
+  scale_linetype_manual(values =  c("dashed", "solid")) +
+  guides(linetype = FALSE) +
+  labs(x = "",
+       y = "",
+       color ="",
+       title = ("College-Going Rate Over Time "),
+       caption = "Source: College-Going Rate for HS Completers (12-month)  https://www.cde.ca.gov/ds/sd/sd/filescgr12.asp") 
 
+ggsave(here("figs","2020","CollegeGoingRate.png"), width = 6.5, height = 4)
+ 
 ### Dropout Rate ------
 
 ##  https://www.cde.ca.gov/ds/sd/sd/filesacgr.asp
@@ -190,7 +223,7 @@ drop_sub <- grad_vroom %>%
 
 
 
-ggplot(grad_all, aes(x = AcademicYear, y = DropoutRate/100, group = Geo, color = Geo , label=percent(DropoutRate/100, digits = 0) )) +
+ggplot(grad_all, aes(x = AcademicYear, y = DropoutRate/100, group = Geo, color = Geo , linetype = Geo, label=percent(DropoutRate/100, digits = 0) )) +
   geom_line(size = 1.5) +
   geom_label(data = grad_all %>% filter(AcademicYear == max(AcademicYear)) , size = 3, color = "black") +
   theme_hc() +  
@@ -198,6 +231,8 @@ ggplot(grad_all, aes(x = AcademicYear, y = DropoutRate/100, group = Geo, color =
   scale_color_few() +
   my_theme +
   scale_y_continuous(labels = percent_format(accuracy = 1), limits = c(0,.15)) +
+  scale_linetype_manual(values =  c("dashed", "solid")) +
+  guides(linetype = FALSE) +
   labs(x = "",
        y = "",
        color ="",
@@ -386,12 +421,14 @@ susp_sub <- susp_vroom %>%
   
 
 
-ggplot(susp_all, aes(x = AcademicYear, y = SuspensionRateTotal, group = Geo, color = Geo , label = percent(SuspensionRateTotal/100, accuracy = .01, digits = 1))) +
+ggplot(susp_all, aes(x = AcademicYear, y = SuspensionRateTotal, group = Geo, color = Geo , linetype = Geo, label = percent(SuspensionRateTotal/100, accuracy = .01, digits = 1))) +
   geom_line(size = 1.5) +
   geom_label(data = susp_all %>% filter(AcademicYear == max(AcademicYear)) , size = 3, color = "black") +
   theme_hc() +
   #        coord_flip() +
   scale_color_few() +
+  scale_linetype_manual(values =  c("dashed", "solid")) +
+  guides(linetype = FALSE) +
   labs(x = "",
        y = "",
        color ="",
@@ -455,12 +492,14 @@ exp_sub <- exp_vroom %>%
 
 
 
-ggplot(exp_all, aes(x = AcademicYear, y = rate, group = Geo, color = Geo , label = round2( rate, 2) )) +
+ggplot(exp_all, aes(x = AcademicYear, y = rate, group = Geo, color = Geo , linetype = Geo, label = percent(round2( rate, 2)/100, accuracy = .01 ))) +
   geom_line(size = 1.5) +
-  geom_text(data = exp_all %>% filter(AcademicYear == max(AcademicYear)) , size = 3, color = "black") +
+  geom_label(data = exp_all %>% filter(AcademicYear == max(AcademicYear)) , size = 3, color = "black") +
   theme_hc() +
   scale_color_few() +
  # scale_y_continuous(labels = scales::percent_format(accuracy = .01), limits = c(0,0.002)) +
+  scale_linetype_manual(values =  c("dashed", "solid")) +
+  guides(linetype = FALSE) +
   labs(x = "",
        y = "",
        color ="",
@@ -544,15 +583,17 @@ pft.pal <- c("#5DA5DA", "#2A72A7", "#003F74", "#FAA43A",  "#C77107","#943E00")
 
 pft.mry %>% 
   filter(str_detect(name, "Perc")) %>%
-ggplot(aes(x= year, y = value/100, group = GeoGrade, color = GeoGrade, label=percent(value/100, digits = 0))) +
+ggplot(aes(x= year, y = value/100, group = GeoGrade, color = GeoGrade, linetype =GeoGrade, label=percent(value/100, digits = 0))) +
   geom_line(size = 1.5) +
-  geom_text(data = pft.mry %>% 
+  geom_label(data = pft.mry %>% 
               filter(str_detect(name, "Perc")) %>%
               filter(year == max(year)) , size = 3, color = "black") +
   theme_hc() +
   scale_color_manual(values = pft.pal ) +
 #    scale_color_few() +
   scale_y_continuous(labels = percent_format(accuracy = 1), limits = c(.50, .80)) +
+  scale_linetype_manual(values =  c("dashed","dashed","dashed", "solid","solid","solid")) +
+  guides(linetype = FALSE) +
   guides(color = guide_legend(nrow=3,byrow=FALSE)) +
   labs(x = "",
        y = "",
@@ -561,7 +602,7 @@ ggplot(aes(x= year, y = value/100, group = GeoGrade, color = GeoGrade, label=per
        subtitle = "Percentage Meeting 4 or more of 6 Fitness Tests",
        caption = "Source: Physical Fitness Test Data \n https://www.cde.ca.gov/ta/tg/pf/pftresearch.asp")
 
-ggsave(here("figs","2020","physical.png"), width = 6, height = 6)
+ggsave(here("figs","2020","physical.png"), width = 6, height = 10)
 
 
 ### Math and ELA scores ----
@@ -581,7 +622,8 @@ sbac.filtered <- sbac.all.multi %>%
   select(`Subgroup ID`, `Student Group` , `Demographic Name` ,`County Code`, TestID,  starts_with("Percentage Standard Met and")) %>%
   pivot_longer(cols = `Percentage Standard Met and Above.19`:`Percentage Standard Met and Above.17`) %>%  # Can be 15 if not including the state
   mutate(Geo = if_else(`County Code` == "00", "California", "Monterey County"),
-         Year = gsub("^.*\\.","",name))
+         Year = gsub("^.*\\.","",name)) %>%
+  mutate(`Year` = `Year`%>% recode(`17` = "2016-17", `18` = "2017-18", `19` = "2018-19"))
 
 
 test <- "ELA"
@@ -589,15 +631,17 @@ test <- "ELA"
 sbac.filtered %>%
   filter(TestID == test,
          `Subgroup ID` == 1) %>%
-ggplot( aes(x = Year, y = value/100, group = Geo, color = Geo , label=percent(value/100, digits = 0) )) +
+ggplot( aes(x = Year, y = value/100, group = Geo, color = Geo , linetype = Geo, label=percent(value/100, digits = 0) )) +
   geom_line(size = 1.5) +
-  geom_text(data = sbac.filtered %>%
+  geom_label(data = sbac.filtered %>%
               filter(TestID == test,
                      `Subgroup ID` == 1) %>%
               filter(Year == max(Year)) , size = 3, color = "black") +
   theme_hc() +
   scale_color_few() +
   scale_y_continuous(labels = percent_format(accuracy = 1), limits = c(0,.6)) +
+  scale_linetype_manual(values =  c("dashed", "solid")) +
+  guides(linetype = FALSE) +
   labs(x = "",
        y = "",
        color ="",
@@ -637,15 +681,17 @@ test <- "Math"
 sbac.filtered %>%
   filter(TestID == test,
          `Subgroup ID` == 1) %>%
-  ggplot( aes(x = Year, y = value/100, group = Geo, color = Geo , label=percent(value/100, digits = 0) )) +
+  ggplot( aes(x = Year, y = value/100, group = Geo, color = Geo , linetype = Geo, label=percent(value/100, digits = 0) )) +
   geom_line(size = 1.5) +
-  geom_text(data = sbac.filtered %>%
+  geom_label(data = sbac.filtered %>%
               filter(TestID == test,
                      `Subgroup ID` == 1) %>%
               filter(Year == max(Year)) , size = 3, color = "black") +
   theme_hc() +
   scale_color_few() +
   scale_y_continuous(labels = percent_format(accuracy = 1), limits = c(0,.6)) +
+  scale_linetype_manual(values =  c("dashed", "solid")) +
+  guides(linetype = FALSE) +
   labs(x = "",
        y = "",
        color ="",
