@@ -197,7 +197,8 @@ ggplot(cgr_all, aes(x = AcademicYear, y = CGR12/100, group = Geo, color = Geo , 
        caption = "Source: College-Going Rate for HS Completers (12-month)  https://www.cde.ca.gov/ds/sd/sd/filescgr12.asp") 
 
 ggsave(here("figs","2020","CollegeGoingRate.png"), width = 6.5, height = 4)
- 
+
+
 ### Dropout Rate ------
 
 ##  https://www.cde.ca.gov/ds/sd/sd/filesacgr.asp
@@ -260,6 +261,29 @@ ggplot(drop_sub, aes( y = DropoutRate/100, x =fct_reorder(StudentGroup, DropoutR
        caption = "Source: Adjusted Cohort Outcome Data \n https://www.cde.ca.gov/ds/sd/sd/filesacgr.asp") 
 
 ggsave(here("figs","2020","drop-subgroup.png"), width = 6, height = 7)
+
+### Social Emotional Readiness
+
+SER <- data.frame("AcademicYear" = c(2012,2015), "KRAScore" = c(23,25), "Geo" = c("Monterey", "Monterey"))
+
+
+ggplot(SER, aes(x = AcademicYear, y = KRAScore, group = Geo, color = Geo , linetype = Geo, label= percent(KRAScore/100, accuracy = 1)) ) +
+  geom_line(size = 1.5) +
+  geom_label(data = SER %>% filter(AcademicYear == AcademicYear) , size = 3, color = "black") +
+  theme_hc() +
+  #        coord_flip() +
+  #scale_color_few() +
+  scale_y_continuous(labels = percent_format(accuracy = 1, scale = 1), limits = NULL) +
+  expand_limits(y = c(0,30)) +
+  #scale_linetype_manual(values =  c("dashed", "solid")) +
+  guides(linetype = FALSE) +
+  labs(x = "",
+       y = "",
+       color ="",
+       title = ("Social Emotional Readiness at Kindergarten Entry"),
+       caption = "Source: First 5 Monterey County Kindergarten Readiness Asssessments")
+
+ggsave(here("figs","2020","KRAScore.png"), width = 6, height = 4)
 
 
 ### Enrollment -------
