@@ -142,7 +142,7 @@ grad_sub <-tbl(con,"GRAD_FOUR") %>%
 
 
 
-
+#**********
 ggplot(grad_all, aes(x = AcademicYear, y = Regular_HS_Diploma_Graduates_Rate/100 , group = Geo, color = Geo , linetype = Geo, label=percent(Regular_HS_Diploma_Graduates_Rate/100, digits = 0) )) +
   geom_line(size = 1.5) +
   geom_label(data = grad_all %>% filter(AcademicYear == max(AcademicYear)) , size = 3, color = "black") +
@@ -162,8 +162,8 @@ ggsave(here("figs","2021","graduationRate.png"), width = 6, height = 7)
 
 
 
-ggplot(grad_sub, aes( y = RegularHsDiplomaGraduatesRate/100, x =fct_reorder(StudentGroup, RegularHsDiplomaGraduatesRate) ,  label = percent(RegularHsDiplomaGraduatesRate/100, accuracy = .1))) +
-  geom_segment( aes(x=fct_reorder(StudentGroup, RegularHsDiplomaGraduatesRate), xend=fct_reorder(StudentGroup, RegularHsDiplomaGraduatesRate), y=0, yend=RegularHsDiplomaGraduatesRate/100),
+ggplot(grad_sub, aes( y = Regular_HS_Diploma_Graduates_Rate/100, x =fct_reorder(StudentGroup, Regular_HS_Diploma_Graduates_Rate) ,  label = percent(Regular_HS_Diploma_Graduates_Rate/100, accuracy = .1))) +
+  geom_segment( aes(x=fct_reorder(StudentGroup, Regular_HS_Diploma_Graduates_Rate), xend=fct_reorder(StudentGroup, Regular_HS_Diploma_Graduates_Rate), y=0, yend=Regular_HS_Diploma_Graduates_Rate/100),
                 color="orange",
                 size =2 ) +
   geom_point( color="orange", size=5, alpha=0.6) +
@@ -185,23 +185,20 @@ ggsave(here("figs","2021","grad-subgroup.png"), width = 6, height = 7)
 
 ### https://www.cde.ca.gov/ds/sd/sd/filescgr12.asp
 
+#************
 
-cgr15 <- read_tsv(here("data","cgr","cgr12mo15.txt"))
-cgr16 <- read_tsv(here("data","cgr","cgr12mo16.txt"))
-cgr17 <- read_tsv(here("data","cgr","cgr12mo17.txt"))
-cgr18 <- read_tsv(here("data","cgr","cgr12mo18.txt"))
-
-cgr4_yr <- list(cgr15, cgr16, cgr17, cgr18) %>% bind_rows()
-
-cgr_all <- cgr4_yr %>% mutate(Geo = if_else(AggregateLevel == "T", "California" , CountyName)) %>%
-  mutate(CGR12 = `College Going Rate - Total (12 Months)`, CGR12 = as.numeric(CGR12))%>%
-  select(AcademicYear, AggregateLevel,CountyCode,CountyName, CharterSchool:CompleterType, Geo, CGR12) %>%
+cgr_all <- tbl(con, "CGR")  %>%
   filter( AggregateLevel %in% c("T", "C"),
           CountyCode %in% c("27","00"), 
           ReportingCategory == "TA",
           CharterSchool =="All",
           AlternativeSchoolAccountabilityStatus == "All",
-          CompleterType =="TA")
+          CompleterType =="TA") %>%
+  collect() %>%
+  mutate(Geo = if_else(AggregateLevel == "T", "California" , CountyName)) %>%
+  mutate(CGR12 = College_Going_Rate_Total_12_Months,
+         CGR12 = as.numeric(CGR12)) 
+
 
 ggplot(cgr_all, aes(x = AcademicYear, y = CGR12/100, group = Geo, color = Geo , linetype = Geo, label= percent(CGR12/100, accuracy = .1)) ) +
   geom_line(size = 1.5) +
@@ -225,28 +222,9 @@ ggsave(here("figs","2021","CollegeGoingRate.png"), width = 6.5, height = 4)
 
 ##  https://www.cde.ca.gov/ds/sd/sd/filesacgr.asp
 
+#**********
 
-drop_sub <- grad_vroom %>% 
-#  mutate(Geo = if_else(AggregateLevel == "T", "California" ,CountyName )) %>%
-  mutate_at(vars(CohortStudents:StillEnrolledRate), funs(as.numeric) ) %>%
-  filter( (CountyCode == 27),
-          is.na(DistrictCode),
-          AcademicYear == max(AcademicYear),
-  #        ReportingCategory == "TA",
-          CharterSchool =="All",
-          Dass == "All") %>%
-  left_join(susp.acron)  %>%
-  mutate(StudentGroupCategory = str_extract(ReportingCategory ,"[:alpha:]{1,1}"  )) %>%
-  mutate(StudentGroupCategory = case_when(StudentGroupCategory == "G" ~ "Gender",
-                                          StudentGroupCategory == "R" ~ "Race/Ethnicity",
-                                          StudentGroupCategory == "S" ~ "Student Group")) %>%
-  filter(ReportingCategory != "TA")
-
-
-
-
-
-ggplot(grad_all, aes(x = AcademicYear, y = DropoutRate/100, group = Geo, color = Geo , linetype = Geo, label=percent(DropoutRate/100, digits = 0) )) +
+ggplot(grad_all, aes(x = AcademicYear, y = Dropout_Rate/100, group = Geo, color = Geo , linetype = Geo, label=percent(Dropout_Rate/100, digits = 0) )) +
   geom_line(size = 1.5) +
   geom_label(data = grad_all %>% filter(AcademicYear == max(AcademicYear)) , size = 3, color = "black") +
   theme_hc() +  
@@ -265,8 +243,8 @@ ggplot(grad_all, aes(x = AcademicYear, y = DropoutRate/100, group = Geo, color =
 ggsave(here("figs","2021","dropout.png"), width = 6, height = 4)
 
 
-ggplot(drop_sub, aes( y = DropoutRate/100, x =fct_reorder(StudentGroup, DropoutRate) ,  label = percent(DropoutRate/100, accuracy = .1))) +
-  geom_segment( aes(x=fct_reorder(StudentGroup, DropoutRate), xend=fct_reorder(StudentGroup, DropoutRate), y=0, yend=DropoutRate/100),
+ggplot(grad_sub, aes( y = Dropout_Rate/100, x =fct_reorder(StudentGroup, Dropout_Rate) ,  label = percent(Dropout_Rate/100, accuracy = .1))) +
+  geom_segment( aes(x=fct_reorder(StudentGroup, Dropout_Rate), xend=fct_reorder(StudentGroup, Dropout_Rate), y=0, yend=Dropout_Rate/100),
                 color="orange",
                 size =2 ) +
   geom_point( color="orange", size=5, alpha=0.6) +
@@ -284,29 +262,6 @@ ggplot(drop_sub, aes( y = DropoutRate/100, x =fct_reorder(StudentGroup, DropoutR
 
 ggsave(here("figs","2021","drop-subgroup.png"), width = 6, height = 7)
 
-### Social Emotional Readiness
-
-SER <- data.frame("AcademicYear" = c(2012,2015), "KRAScore" = c(23,25), "Geo" = c("Monterey", "Monterey"))
-
-
-ggplot(SER, aes(x = AcademicYear, y = KRAScore, group = Geo, color = Geo , linetype = Geo, label= percent(KRAScore/100, accuracy = 1)) ) +
-  geom_line(size = 1.5) +
-  geom_label(data = SER %>% filter(AcademicYear == AcademicYear) , size = 3, color = "black") +
-  theme_hc() +
-  #        coord_flip() +
-  #scale_color_few() +
-  scale_y_continuous(labels = percent_format(accuracy = 1, scale = 1), limits = NULL) +
-  expand_limits(y = c(0,30)) +
-  #scale_linetype_manual(values =  c("dashed", "solid")) +
-  guides(linetype = FALSE) +
-  labs(x = "",
-       y = "",
-       color ="",
-       title = ("Social Emotional Readiness at Kindergarten Entry"),
-       caption = "Source: First 5 Monterey County Kindergarten Readiness Asssessments")
-
-ggsave(here("figs","2021","KRAScore.png"), width = 6, height = 4)
-
 
 ### Enrollment -------
 # Unduplicated Pupil Count (UPC) of free or reduced price meal (FRPM) eligibility, English learner (EL), and foster youth data
@@ -316,23 +271,27 @@ ggsave(here("figs","2021","KRAScore.png"), width = 6, height = 4)
 ## https://www.cde.ca.gov/ds/sd/sd/filescupc.asp
 
 
-cupc1415 <- read_excel(here("data","cupc1415.xls"), sheet = "LEA-Level CALPADS UPC Data")%>% 
-  clean_names(case = "upper_camel")
-cupc1516 <- read_excel(here("data","cupc1516.xls"), sheet = "LEA-Level CALPADS UPC Data", range = "A3:AA2214")
-cupc1617 <- read_excel(here("data","cupc1617-k12.xls"), sheet = "LEA-Level CALPADS UPC Data", range = "A3:AA2236")
-cupc1718 <- read_excel(here("data","cupc1718-k12.xlsx"), sheet = "LEA-Level CALPADS UPC Data", range = "A3:AA2258")
-cupc1819 <- read_excel(here("data","cupc1819-k12.xlsx"), sheet = "LEA-Level CALPADS UPC Data", range = "A3:AA2302")
+# cupc1415 <- read_excel(here("data","cupc1415.xls"), sheet = "LEA-Level CALPADS UPC Data")%>% 
+#   clean_names(case = "upper_camel")
+# cupc1516 <- read_excel(here("data","cupc1516.xls"), sheet = "LEA-Level CALPADS UPC Data", range = "A3:AA2214")
+# cupc1617 <- read_excel(here("data","cupc1617-k12.xls"), sheet = "LEA-Level CALPADS UPC Data", range = "A3:AA2236")
+# cupc1718 <- read_excel(here("data","cupc1718-k12.xlsx"), sheet = "LEA-Level CALPADS UPC Data", range = "A3:AA2258")
+# cupc1819 <- read_excel(here("data","cupc1819-k12.xlsx"), sheet = "LEA-Level CALPADS UPC Data", range = "A3:AA2302")
+# 
+# colnames(cupc1516)<-colnames(cupc1415)
+# colnames(cupc1617)<-colnames(cupc1415)
+# colnames(cupc1718)<-colnames(cupc1415)
+# colnames(cupc1819)<-colnames(cupc1415)
+# 
+# cupc <- list(cupc1415, cupc1516, cupc1617, cupc1718, cupc1819) %>% bind_rows()
+# 
 
-colnames(cupc1516)<-colnames(cupc1415)
-colnames(cupc1617)<-colnames(cupc1415)
-colnames(cupc1718)<-colnames(cupc1415)
-colnames(cupc1819)<-colnames(cupc1415)
 
-cupc <- list(cupc1415, cupc1516, cupc1617, cupc1718, cupc1819) %>% bind_rows()
+cupc.mry <- tbl(con, "UPC") %>% 
+  filter(County_Code == 27) %>%
+  collect() %>%
+  group_by(academic_year)
 
-cupc.mry <- cupc %>% 
-  filter(CountyCode == 27) %>%
-  group_by(AcademicYear)
 
 # Total Enrollment
 
@@ -352,18 +311,22 @@ enrollment <- function(enrolltype, lowlimit, highlimit,tit ){
        y = "",
        color ="",
        title = (tit),
-       caption = "Source: Unduplicated Pupil Count \n https://www.cde.ca.gov/ds/sd/sd/filescupc.asp") 
+       caption = "Source: Unduplicated Pupil Count \n https://www.cde.ca.gov/ds/sd/sd/filescupc.asp")
 }
 
-enrollment(TotalEnrollment, 60000, 80000, "Total Enrollment in Monterey County")
+
+
+
+#******
+enrollment(total_enrollment, 60000, 80000, "Total Enrollment in Monterey County")
 ggsave(here("figs","2021","total enrollment.png"), width = 6, height = 4)
 
-
-enrollment(Homeless, 0, 10000, "Homeless Enrollment in Monterey County")
+#******
+enrollment(homeless, 0, 10000, "Homeless Enrollment in Monterey County")
 ggsave(here("figs","2021","homeless enrollment.png"), width = 6, height = 4)
 
-
-enrollment(UnduplicatedFrpmEligibleCount, 50000, 60000, "Free/Reduced Price Meals Enrollment in Monterey County")
+#******
+enrollment(unduplicated_frpm_eligible_count, 50000, 60000, "Free/Reduced Price Meals Enrollment in Monterey County")
 ggsave(here("figs","2021","frpm enrollment.png"), width = 6, height = 4)
 
 
@@ -374,7 +337,7 @@ ggsave(here("figs","2021","EL enrollment.png"), width = 6, height = 4)
 
 #  Special Education Enrollment
 
-
+#********
 sped.count <- function(yr) {
   
   url <- paste0("https://data1.cde.ca.gov/dataquest/SpecEd/SEEnrEthDis2.asp?cChoice=SEEthDis2&cYear=",yr,"&TheCounty=27,MONTEREY&clevel=County&ReptCycle=December")
@@ -436,7 +399,7 @@ ggsave(here("figs","2021","SPED enrollment.png"), width = 6, height = 4)
 # https://www.cde.ca.gov/ds/sd/sd/filessd.asp
 
 
-
+#***********
 susp_vroom <- import_files(here("data","susp"),"sus*txt") %>% 
   filter( 
           is.na(DistrictCode),
@@ -509,7 +472,7 @@ ggsave(here("figs","2021","suspension-subgroup.png"), width = 6, height = 7)
 
 # https://www.cde.ca.gov/ds/sd/sd/filesed.asp
 
-
+#************
 exp_vroom <- import_files(here("data","exp"),"exp*txt") %>%
   filter(CharterYn == "All"|is.na(CharterYn)|CharterYn == "") %>%
   mutate(Geo = if_else(AggregateLevel == "T", "California" ,CountyName )) %>%
@@ -580,7 +543,7 @@ ggsave(here("figs","2021","expulsion-subgroup.png"), width = 6, height = 7)
 
 # https://www.cde.ca.gov/ta/tg/pf/pftresearch.asp
 
-
+#*******
 pft.years <- c("2018_19", "2014_15","2015_16","2016_17","2017_18" )
 
 compile.pft <- function(yr) {
