@@ -36,34 +36,6 @@ library(rvest)
 library(xml2)
 library(MCOE)
 
-#  Commented out since using mcoe_theme instead 
-# mcoe_theme <- list(theme_hc(),
-#                  scale_fill_few() ,
-#       #           geom_text(size = 2, position = position_dodge(width = 1)),
-#                  theme(plot.title.position = "plot"),
-#                  labs(x = "",
-#                       y = "",
-#                       fill ="") )
-
-# `%notin%` <- Negate(`%in%`)
-# mcoe_theme <- list(theme_hc(),
-#                  scale_fill_few() ,
-#                  #           geom_text(size = 2, position = position_dodge(width = 1)),
-#                  theme(plot.title.position = "plot"),
-#                  labs(x = "",
-#                       y = "",
-#                       fill ="") )
-# 
-#  Commented out since using MCOE library
-# round2 = function(x, digits) {
-#   posneg = sign(x)
-#   z = abs(x)*10^digits
-#   z = z + 0.5
-#   z = trunc(z)
-#   z = z/10^digits
-#   z*posneg
-# }
-
 
 con <- mcoe_sql_con()
 
@@ -378,21 +350,6 @@ ggplot(sped, aes(x = year, y = value, group = Geo, label=comma( value) )) +
 
 ggsave(here("figs","2021","SPED enrollment.png"), width = 6, height = 4)
 
-### Kindergarten Readiness -----
-
-
-# In 2015, 21% of kindergartners had comprehensive mastery at kindergarten entry. Comprehensive mastery indicates that a child is well-prepared to
-# enter kindergarten across all four developmental domains assessed by teachers using the Desired Results Developmental Profile–School Readiness
-# (DRDP-SR). Teachers rated children’s competency on each item of the DRDP–SR using the following five-point scale: (1) Exploring, (2) Developing, 
-# (3) Building, (4) Integrating, and (5) Applying. Scores of (4) Integrating and (5) Applying indicate mastery of that item. The term comprehensive 
-# mastery is used to identify children with an average score of 4 or above across all items in the DRDP-SR excluding the English Language Development
-# domain[^kra].
-# [^kra]: Nurturing Success: A Portrait of Kindergarten Readiness in Monterey County.  First 5 Monterey County and Harder+Co.
-# 
-
-
-
-
 
 ### Suspension ------
 
@@ -400,27 +357,26 @@ ggsave(here("figs","2021","SPED enrollment.png"), width = 6, height = 4)
 
 
 #***********
-susp_vroom <- import_files(here("data","susp"),"sus*txt") %>% 
-  filter( 
-          is.na(DistrictCode),
-          CharterYn == "All"|is.na(CharterYn)|CharterYn == "") %>%
-  mutate(Geo = if_else(AggregateLevel == "T", "California" ,CountyName )) %>%
-  mutate_at(vars(CumulativeEnrollment:SuspensionCountDefianceOnly), funs(as.numeric) ) %>%
-  mutate(SuspensionCountOfStudentsSuspendedDefianceOnly2 =  if_else(is.na(SuspensionCountOfStudentsSuspendedDefianceOnly),
-                                                                    as.numeric( SuspensionCountDefianceOnly ) , 
-                                                                    as.numeric( SuspensionCountOfStudentsSuspendedDefianceOnly) )  )
 
+
+susp_vroom <- tbl(con,"SUSP") %>% 
+  filter(is.na(district_code),
+          charter_yn == "All" | is.na(charter_yn) | charter_yn == "") %>%
+  collect() %>%
+  mutate(Geo = if_else(aggregate_level == "T", "California" ,county_name )) %>%
+  mutate_at(vars(cumulative_enrollment:suspension_count_other_reasons), funs(as.numeric) )
 
 susp_all <- susp_vroom %>%
-  filter( (AggregateLevel == "T"  |CountyCode == 27),
-          ReportingCategory == "TA") 
+  filter( (aggregate_level == "T"  |county_code == 27),
+          reporting_category == "TA") 
 
 
 susp_sub <- susp_vroom %>%  
   filter( 
-    (CountyCode == 27),
-    AcademicYear == max(AcademicYear)
+    (county_code == 27),
+    academic_year == max(academic_year)
  ) %>%
+  rename(ReportingCategory = reporting_category) %>%
   left_join(susp.acron) %>%
   mutate(StudentGroupCategory = str_extract(ReportingCategory ,"[:alpha:]{1,1}"  )) %>%
   mutate(StudentGroupCategory = case_when(StudentGroupCategory == "G" ~ "Gender",
@@ -430,9 +386,9 @@ susp_sub <- susp_vroom %>%
   
 
 
-ggplot(susp_all, aes(x = AcademicYear, y = SuspensionRateTotal, group = Geo, color = Geo , linetype = Geo, label = percent(SuspensionRateTotal/100, accuracy = .01, digits = 1))) +
+ggplot(susp_all, aes(x = academic_year, y = suspension_rate_total, group = Geo, color = Geo , linetype = Geo, label = percent(suspension_rate_total/100, accuracy = .01, digits = 1))) +
   geom_line(size = 1.5) +
-  geom_label(data = susp_all %>% filter(AcademicYear == max(AcademicYear)) , size = 3, color = "black") +
+  geom_label(data = susp_all %>% filter(academic_year == max(academic_year)) , size = 3, color = "black") +
   theme_hc() +
   #        coord_flip() +
   scale_color_few() +
@@ -448,8 +404,8 @@ ggsave(here("figs","2021","suspension.png"), width = 6, height = 4)
 
 
 
-ggplot(susp_sub, aes( y = SuspensionRateTotal/100, x =fct_reorder(StudentGroup, SuspensionRateTotal) ,  label = percent(SuspensionRateTotal/100, accuracy = .1))) +
-  geom_segment( aes(x=fct_reorder(StudentGroup, SuspensionRateTotal), xend=fct_reorder(StudentGroup, SuspensionRateTotal), y=0, yend=SuspensionRateTotal/100),
+ggplot(susp_sub, aes( y = suspension_rate_total/100, x =fct_reorder(StudentGroup, suspension_rate_total) ,  label = percent(suspension_rate_total/100, accuracy = .1))) +
+  geom_segment( aes(x=fct_reorder(StudentGroup, suspension_rate_total), xend=fct_reorder(StudentGroup, suspension_rate_total), y=0, yend=suspension_rate_total/100),
                 color="orange",
                 size =2 ) +
   geom_point( color="orange", size=5, alpha=0.6) +
@@ -473,25 +429,28 @@ ggsave(here("figs","2021","suspension-subgroup.png"), width = 6, height = 7)
 # https://www.cde.ca.gov/ds/sd/sd/filesed.asp
 
 #************
-exp_vroom <- import_files(here("data","exp"),"exp*txt") %>%
-  filter(CharterYn == "All"|is.na(CharterYn)|CharterYn == "") %>%
-  mutate(Geo = if_else(AggregateLevel == "T", "California" ,CountyName )) %>%
-  mutate_at(vars(CumulativeEnrollment:ExpulsionCountDefianceOnly), funs(as.numeric) ) %>%
-  mutate(rate = (1000*UnduplicatedCountOfStudentsExpelledTotal/CumulativeEnrollment))
+
+
+
+exp_vroom <- tbl(con,"EXP") %>% 
+  filter(is.na(district_code),
+         charter_yn == "All" | is.na(charter_yn) | charter_yn == "") %>%
+  collect() %>%
+  mutate(Geo = if_else(aggregate_level == "T", "California" ,county_name )) %>%
+  mutate_at(vars(cumulative_enrollment:expulsion_count_other_reasons), funs(as.numeric) ) %>%
+  mutate(rate = (1000*unduplicated_count_of_students_expelled_total/cumulative_enrollment))
 
 exp_all <- exp_vroom %>%
-  filter( (AggregateLevel == "T"  |CountyCode == 27),
-          is.na(DistrictCode),
-          ReportingCategory == "TA",
-   #       AcademicYear == max(AcademicYear)
-  ) 
+  filter( (aggregate_level == "T"  |county_code == 27),
+        reporting_category == "TA") 
 
 
 exp_sub <- exp_vroom %>%
-  filter( (CountyCode == 27),
-          is.na(DistrictCode),
-          AcademicYear == max(AcademicYear)
-  )   %>%
+  filter( 
+    (county_code == 27),
+    academic_year == max(academic_year)
+  ) %>%
+  rename(ReportingCategory = reporting_category) %>%
   left_join(susp.acron) %>%
   mutate(StudentGroupCategory = str_extract(ReportingCategory ,"[:alpha:]{1,1}"  )) %>%
   mutate(StudentGroupCategory = case_when(StudentGroupCategory == "G" ~ "Gender",
@@ -501,9 +460,9 @@ exp_sub <- exp_vroom %>%
 
 
 
-ggplot(exp_all, aes(x = AcademicYear, y = rate, group = Geo, color = Geo , linetype = Geo, label = percent(round2( rate, 2)/100, accuracy = .01 ))) +
+ggplot(exp_all, aes(x = academic_year, y = rate, group = Geo, color = Geo , linetype = Geo, label = percent(round2( rate, 2)/100, accuracy = .01 ))) +
   geom_line(size = 1.5) +
-  geom_label(data = exp_all %>% filter(AcademicYear == max(AcademicYear)) , size = 3, color = "black") +
+  geom_label(data = exp_all %>% filter(academic_year == max(academic_year)) , size = 3, color = "black") +
   theme_hc() +
   scale_color_few() +
  # scale_y_continuous(labels = scales::percent_format(accuracy = .01), limits = c(0,0.002)) +
