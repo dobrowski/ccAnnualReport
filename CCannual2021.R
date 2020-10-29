@@ -4,23 +4,14 @@
 
 
 # Free and Reduced Lunch Meal Program
-# 
 # Student Homelessness
-# 
 # Public School Enrollment
-# 
 # Children Enrolled in Special Education
-# 
 # Physical Fitness
-# 
 # Graduation Rates Over Time
-# 
 # Student Suspension Rates Over Time
-# 
 # Student Expulsion Rates Over Time
-# 
 # Student Drop Out Rate
-# 
 # College Going Rate
 
 
@@ -243,22 +234,6 @@ ggsave(here("figs","2021","drop-subgroup.png"), width = 6, height = 7)
 ## https://www.cde.ca.gov/ds/sd/sd/filescupc.asp
 
 
-# cupc1415 <- read_excel(here("data","cupc1415.xls"), sheet = "LEA-Level CALPADS UPC Data")%>% 
-#   clean_names(case = "upper_camel")
-# cupc1516 <- read_excel(here("data","cupc1516.xls"), sheet = "LEA-Level CALPADS UPC Data", range = "A3:AA2214")
-# cupc1617 <- read_excel(here("data","cupc1617-k12.xls"), sheet = "LEA-Level CALPADS UPC Data", range = "A3:AA2236")
-# cupc1718 <- read_excel(here("data","cupc1718-k12.xlsx"), sheet = "LEA-Level CALPADS UPC Data", range = "A3:AA2258")
-# cupc1819 <- read_excel(here("data","cupc1819-k12.xlsx"), sheet = "LEA-Level CALPADS UPC Data", range = "A3:AA2302")
-# 
-# colnames(cupc1516)<-colnames(cupc1415)
-# colnames(cupc1617)<-colnames(cupc1415)
-# colnames(cupc1718)<-colnames(cupc1415)
-# colnames(cupc1819)<-colnames(cupc1415)
-# 
-# cupc <- list(cupc1415, cupc1516, cupc1617, cupc1718, cupc1819) %>% bind_rows()
-# 
-
-
 cupc.mry <- tbl(con, "UPC") %>% 
   filter(County_Code == 27) %>%
   collect() %>%
@@ -363,8 +338,8 @@ susp_vroom <- tbl(con,"SUSP") %>%
   filter(is.na(district_code),
           charter_yn == "All" | is.na(charter_yn) | charter_yn == "") %>%
   collect() %>%
-  mutate(Geo = if_else(aggregate_level == "T", "California" ,county_name )) %>%
-  mutate_at(vars(cumulative_enrollment:suspension_count_other_reasons), funs(as.numeric) )
+  mutate(Geo = if_else(aggregate_level == "T", "California" ,county_name ))# %>%
+#  mutate_at(vars(cumulative_enrollment:suspension_count_other_reasons), funs(as.numeric) )
 
 susp_all <- susp_vroom %>%
   filter( (aggregate_level == "T"  |county_code == 27),
@@ -437,7 +412,7 @@ exp_vroom <- tbl(con,"EXP") %>%
          charter_yn == "All" | is.na(charter_yn) | charter_yn == "") %>%
   collect() %>%
   mutate(Geo = if_else(aggregate_level == "T", "California" ,county_name )) %>%
-  mutate_at(vars(cumulative_enrollment:expulsion_count_other_reasons), funs(as.numeric) ) %>%
+#  mutate_at(vars(cumulative_enrollment:expulsion_count_other_reasons), funs(as.numeric) ) %>%
   mutate(rate = (1000*unduplicated_count_of_students_expelled_total/cumulative_enrollment))
 
 exp_all <- exp_vroom %>%
@@ -460,7 +435,7 @@ exp_sub <- exp_vroom %>%
 
 
 
-ggplot(exp_all, aes(x = academic_year, y = rate, group = Geo, color = Geo , linetype = Geo, label = percent(round2( rate, 2)/100, accuracy = .01 ))) +
+ggplot(exp_all, aes(x = academic_year, y = rate, group = Geo, color = Geo , linetype = Geo, label = round2( rate, 2), accuracy = .01 )) +
   geom_line(size = 1.5) +
   geom_label(data = exp_all %>% filter(academic_year == max(academic_year)) , size = 3, color = "black") +
   theme_hc() +
@@ -573,191 +548,191 @@ ggplot(aes(x= year, y = value/100, group = GeoGrade, color = GeoGrade, linetype 
 ggsave(here("figs","2021","physical.png"), width = 6, height = 10)
 
 
-### Math and ELA scores ----
-
-# https://caaspp-elpac.cde.ca.gov/caaspp/ResearchFileList?ps=true&lstTestYear=2019&lstTestType=B&lstGroup=1&lstGrade=13&lstSchoolType=A&lstCounty=00&lstDistrict=00000&lstSchool=0000000#dl
-
-# Generated from the CAASPP repo
-sbac.all <-   read_rds(here("data","sbac-all.rds"))
-
-sbac.all.multi <-   read_rds(here("data","sbac-all-multi.rds"))
-
-sbac.filtered <- sbac.all.multi %>% 
-  filter(
-         `County Code` %in% c("00", "27"),
-         `District Code` == "00000",
-         Grade == "Overall") %>%
-  select(`Subgroup ID`, `Student Group` , `Demographic Name` ,`County Code`, TestID,  starts_with("Percentage Standard Met and")) %>%
-  pivot_longer(cols = `Percentage Standard Met and Above.19`:`Percentage Standard Met and Above.17`) %>%  # Can be 15 if not including the state
-  mutate(Geo = if_else(`County Code` == "00", "California", "Monterey County"),
-         Year = gsub("^.*\\.","",name)) %>%
-  mutate(`Year` = `Year`%>% recode(`17` = "2016-17", `18` = "2017-18", `19` = "2018-19"))
-
-
-test <- "ELA"
-
-sbac.filtered %>%
-  filter(TestID == test,
-         `Subgroup ID` == 1) %>%
-ggplot( aes(x = Year, y = value/100, group = Geo, color = Geo , linetype = Geo, label=percent(value/100, digits = 0) )) +
-  geom_line(size = 1.5) +
-  geom_label(data = sbac.filtered %>%
-              filter(TestID == test,
-                     `Subgroup ID` == 1) %>%
-              filter(Year == max(Year)) , size = 3, color = "black") +
-  theme_hc() +
-  scale_color_few() +
-  scale_y_continuous(labels = percent_format(accuracy = 1), limits = c(0,.6)) +
-  scale_linetype_manual(values =  c("dashed", "solid")) +
-  guides(linetype = FALSE) +
-  labs(x = "",
-       y = "",
-       color ="",
-       title = (paste0(test, " Percentage Meeting and Exceeding Rates Over Time")),
-       caption = "Source: CAASPP Research Files \n https://caaspp-elpac.cde.ca.gov/caaspp/ResearchFileList")
-
-ggsave(here("figs","2021",paste0(test,".png")), width = 6, height = 4)
-
-
-sbac.filtered %>%
-  filter(TestID == test,
-         Year == max(Year),
-         `County Code` == "27",
-        `Subgroup ID` < 200 &`Subgroup ID` %notin% c(190,212)) %>% # `Demographic Name`
-  ggplot( aes( y = value/100, x =fct_reorder(`Demographic Name`, value) ,  label = percent(value/100, accuracy = .1))) +
-  geom_segment( aes(x=fct_reorder(`Demographic Name`, value/100), xend=fct_reorder(`Demographic Name`, value/100), y=0, yend=value/100),
-                color="orange",
-                size =2 ) +
-  geom_point( color="orange", size=5, alpha=0.6) +
-  coord_flip() +
-  geom_text(size = 3, color = "black") +
-  scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
-  facet_grid(facets = vars(`Student Group`), scales = "free" ) +
-  theme_hc() +
-  mcoe_theme +
-  labs(x = "",
-       y = "",
-       color ="",
-       title = (paste0(test, " Percentage Meeting and Exceeding Rates by Student Group")),
-       caption = "Source: CAASPP Research Files \n https://caaspp-elpac.cde.ca.gov/caaspp/ResearchFileList")
-
-ggsave(here("figs","2021",paste0(test,"-sub.png")), width = 8, height = 11)
-
-
-test <- "Math"
-
-sbac.filtered %>%
-  filter(TestID == test,
-         `Subgroup ID` == 1) %>%
-  ggplot( aes(x = Year, y = value/100, group = Geo, color = Geo , linetype = Geo, label=percent(value/100, digits = 0) )) +
-  geom_line(size = 1.5) +
-  geom_label(data = sbac.filtered %>%
-              filter(TestID == test,
-                     `Subgroup ID` == 1) %>%
-              filter(Year == max(Year)) , size = 3, color = "black") +
-  theme_hc() +
-  scale_color_few() +
-  scale_y_continuous(labels = percent_format(accuracy = 1), limits = c(0,.6)) +
-  scale_linetype_manual(values =  c("dashed", "solid")) +
-  guides(linetype = FALSE) +
-  labs(x = "",
-       y = "",
-       color ="",
-       title = (paste0(test, " Percentage Meeting and Exceeding Rates Over Time")),
-       caption = "Source: CAASPP Research Files \n https://caaspp-elpac.cde.ca.gov/caaspp/ResearchFileList")
-
-ggsave(here("figs","2021",paste0(test,".png")), width = 6, height = 4)
-
-
-sbac.filtered %>%
-  filter(TestID == test,
-         Year == max(Year),
-         `County Code` == "27",
-         `Subgroup ID` < 200 &`Subgroup ID` %notin% c(190,212)) %>% # `Demographic Name`
-  ggplot( aes( y = value/100, x =fct_reorder(`Demographic Name`, value) ,  label = percent(value/100, accuracy = .1))) +
-  geom_segment( aes(x=fct_reorder(`Demographic Name`, value/100), xend=fct_reorder(`Demographic Name`, value/100), y=0, yend=value/100),
-                color="orange",
-                size =2 ) +
-  geom_point( color="orange", size=5, alpha=0.6) +
-  coord_flip() +
-  geom_text(size = 3, color = "black") +
-  facet_grid(facets = vars(`Student Group`), scales = "free" ) +
-  scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
-  theme_hc() +
-  mcoe_theme +
-  labs(x = "",
-       y = "",
-       color ="",
-       title = (paste0(test, " Percentage Meeting and Exceeding Rates by Student Group")),
-       caption = "Source: CAASPP Research Files \n https://caaspp-elpac.cde.ca.gov/caaspp/ResearchFileList")
-
-ggsave(here("figs","2021",paste0(test,"-sub.png")), width = 8, height = 11)
-
-
-### EL Reclassification ----
-
-# https://www.cde.ca.gov/ds/sd/sd/filesreclass.asp
-
-setwd(here("data","reclass"))
-
-files <- fs::dir_ls()
-
-el_vroom <- vroom(files, id = "year")
-
-setwd(here())
-
-el_dist <- el_vroom %>%
-  filter( str_detect(CDS,"^27"  )) %>%
-  mutate(year = str_extract_all(year, "\\d{1,2}") %>% simplify() %>% as.numeric()) %>%
-  mutate(year = paste0("20",year-1,"-20",year)) %>%
-#  filter(year >= "2014-2015") %>%
-  group_by(year) %>%
-  transmute(`Reclassified Students` = sum(Reclass),
-            `EL Enrollment` = sum(EL)) %>%
-  distinct() %>%
-  pivot_longer(cols = c(`Reclassified Students`, `EL Enrollment`))
-
-
-el_dist  %>%
-  ggplot( aes(x = year, y = value,  label=comma( value, accuracy = 1) , color = name ,group = name)) +
-  geom_line(size = 1.5) +
-  geom_label( size = 3 , color = "black") +
-  theme_hc() +
-  scale_color_pander() +
-  scale_y_continuous(labels = comma_format(), limits = c(0,35000)) +
-  labs(x = "",
-       y = "",
-       color ="",
-              title = ("EL Enrollment and Number of Reclassified Students by Year"),
-              caption = "Source: EL Reclassification Data \n https://www.cde.ca.gov/ds/sd/sd/filesreclass.asp")
-  
-
-ggsave(here("figs","2021","reclass.png"), width = 7, height = 5)
-
- 
+# ### Math and ELA scores ----
 # 
-# el_enrol <- cupc.mry %>%
-#   summarise(countyenrollment = sum(EnglishLearnerEl)) %>%
-#   `colnames<-`(c("year","value")) %>%
-#   ungroup() %>%
-#   mutate(Geo = "EL Enrollment") 
+# # https://caaspp-elpac.cde.ca.gov/caaspp/ResearchFileList?ps=true&lstTestYear=2019&lstTestType=B&lstGroup=1&lstGrade=13&lstSchoolType=A&lstCounty=00&lstDistrict=00000&lstSchool=0000000#dl
 # 
-# el_enrol %>%
-#   bind_rows(el_dist) %>%
-#   ggplot( aes(x = year, y = value,  label=comma( value) , group = Geo, color = Geo)) +
+# # Generated from the CAASPP repo
+# sbac.all <-   read_rds(here("data","sbac-all.rds"))
+# 
+# sbac.all.multi <-   read_rds(here("data","sbac-all-multi.rds"))
+# 
+# sbac.filtered <- sbac.all.multi %>% 
+#   filter(
+#          `County Code` %in% c("00", "27"),
+#          `District Code` == "00000",
+#          Grade == "Overall") %>%
+#   select(`Subgroup ID`, `Student Group` , `Demographic Name` ,`County Code`, TestID,  starts_with("Percentage Standard Met and")) %>%
+#   pivot_longer(cols = `Percentage Standard Met and Above.19`:`Percentage Standard Met and Above.17`) %>%  # Can be 15 if not including the state
+#   mutate(Geo = if_else(`County Code` == "00", "California", "Monterey County"),
+#          Year = gsub("^.*\\.","",name)) %>%
+#   mutate(`Year` = `Year`%>% recode(`17` = "2016-17", `18` = "2017-18", `19` = "2018-19"))
+# 
+# 
+# test <- "ELA"
+# 
+# sbac.filtered %>%
+#   filter(TestID == test,
+#          `Subgroup ID` == 1) %>%
+# ggplot( aes(x = Year, y = value/100, group = Geo, color = Geo , linetype = Geo, label=percent(value/100, digits = 0) )) +
 #   geom_line(size = 1.5) +
-#   geom_label( size = 3, color = "black") +
+#   geom_label(data = sbac.filtered %>%
+#               filter(TestID == test,
+#                      `Subgroup ID` == 1) %>%
+#               filter(Year == max(Year)) , size = 3, color = "black") +
 #   theme_hc() +
-#   scale_color_pander() +
-#   scale_y_continuous(labels = comma_format(), limits = c(0,40000)) +
+#   scale_color_few() +
+#   scale_y_continuous(labels = percent_format(accuracy = 1), limits = c(0,.6)) +
+#   scale_linetype_manual(values =  c("dashed", "solid")) +
+#   guides(linetype = FALSE) +
 #   labs(x = "",
 #        y = "",
 #        color ="",
-#        title = ("EL Enrollment and Number of Reclassified Students by Year"),
-#        caption = "Sources: Unduplicated Pupil Count \n https://www.cde.ca.gov/ds/sd/sd/filescupc.asp \nEL Reclassification Data \n https://www.cde.ca.gov/ds/sd/sd/filesreclass.asp") 
+#        title = (paste0(test, " Percentage Meeting and Exceeding Rates Over Time")),
+#        caption = "Source: CAASPP Research Files \n https://caaspp-elpac.cde.ca.gov/caaspp/ResearchFileList")
 # 
-
-
+# ggsave(here("figs","2021",paste0(test,".png")), width = 6, height = 4)
+# 
+# 
+# sbac.filtered %>%
+#   filter(TestID == test,
+#          Year == max(Year),
+#          `County Code` == "27",
+#         `Subgroup ID` < 200 &`Subgroup ID` %notin% c(190,212)) %>% # `Demographic Name`
+#   ggplot( aes( y = value/100, x =fct_reorder(`Demographic Name`, value) ,  label = percent(value/100, accuracy = .1))) +
+#   geom_segment( aes(x=fct_reorder(`Demographic Name`, value/100), xend=fct_reorder(`Demographic Name`, value/100), y=0, yend=value/100),
+#                 color="orange",
+#                 size =2 ) +
+#   geom_point( color="orange", size=5, alpha=0.6) +
+#   coord_flip() +
+#   geom_text(size = 3, color = "black") +
+#   scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
+#   facet_grid(facets = vars(`Student Group`), scales = "free" ) +
+#   theme_hc() +
+#   mcoe_theme +
+#   labs(x = "",
+#        y = "",
+#        color ="",
+#        title = (paste0(test, " Percentage Meeting and Exceeding Rates by Student Group")),
+#        caption = "Source: CAASPP Research Files \n https://caaspp-elpac.cde.ca.gov/caaspp/ResearchFileList")
+# 
+# ggsave(here("figs","2021",paste0(test,"-sub.png")), width = 8, height = 11)
+# 
+# 
+# test <- "Math"
+# 
+# sbac.filtered %>%
+#   filter(TestID == test,
+#          `Subgroup ID` == 1) %>%
+#   ggplot( aes(x = Year, y = value/100, group = Geo, color = Geo , linetype = Geo, label=percent(value/100, digits = 0) )) +
+#   geom_line(size = 1.5) +
+#   geom_label(data = sbac.filtered %>%
+#               filter(TestID == test,
+#                      `Subgroup ID` == 1) %>%
+#               filter(Year == max(Year)) , size = 3, color = "black") +
+#   theme_hc() +
+#   scale_color_few() +
+#   scale_y_continuous(labels = percent_format(accuracy = 1), limits = c(0,.6)) +
+#   scale_linetype_manual(values =  c("dashed", "solid")) +
+#   guides(linetype = FALSE) +
+#   labs(x = "",
+#        y = "",
+#        color ="",
+#        title = (paste0(test, " Percentage Meeting and Exceeding Rates Over Time")),
+#        caption = "Source: CAASPP Research Files \n https://caaspp-elpac.cde.ca.gov/caaspp/ResearchFileList")
+# 
+# ggsave(here("figs","2021",paste0(test,".png")), width = 6, height = 4)
+# 
+# 
+# sbac.filtered %>%
+#   filter(TestID == test,
+#          Year == max(Year),
+#          `County Code` == "27",
+#          `Subgroup ID` < 200 &`Subgroup ID` %notin% c(190,212)) %>% # `Demographic Name`
+#   ggplot( aes( y = value/100, x =fct_reorder(`Demographic Name`, value) ,  label = percent(value/100, accuracy = .1))) +
+#   geom_segment( aes(x=fct_reorder(`Demographic Name`, value/100), xend=fct_reorder(`Demographic Name`, value/100), y=0, yend=value/100),
+#                 color="orange",
+#                 size =2 ) +
+#   geom_point( color="orange", size=5, alpha=0.6) +
+#   coord_flip() +
+#   geom_text(size = 3, color = "black") +
+#   facet_grid(facets = vars(`Student Group`), scales = "free" ) +
+#   scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
+#   theme_hc() +
+#   mcoe_theme +
+#   labs(x = "",
+#        y = "",
+#        color ="",
+#        title = (paste0(test, " Percentage Meeting and Exceeding Rates by Student Group")),
+#        caption = "Source: CAASPP Research Files \n https://caaspp-elpac.cde.ca.gov/caaspp/ResearchFileList")
+# 
+# ggsave(here("figs","2021",paste0(test,"-sub.png")), width = 8, height = 11)
+# 
+# 
+# ### EL Reclassification ----
+# 
+# # https://www.cde.ca.gov/ds/sd/sd/filesreclass.asp
+# 
+# setwd(here("data","reclass"))
+# 
+# files <- fs::dir_ls()
+# 
+# el_vroom <- vroom(files, id = "year")
+# 
+# setwd(here())
+# 
+# el_dist <- el_vroom %>%
+#   filter( str_detect(CDS,"^27"  )) %>%
+#   mutate(year = str_extract_all(year, "\\d{1,2}") %>% simplify() %>% as.numeric()) %>%
+#   mutate(year = paste0("20",year-1,"-20",year)) %>%
+# #  filter(year >= "2014-2015") %>%
+#   group_by(year) %>%
+#   transmute(`Reclassified Students` = sum(Reclass),
+#             `EL Enrollment` = sum(EL)) %>%
+#   distinct() %>%
+#   pivot_longer(cols = c(`Reclassified Students`, `EL Enrollment`))
+# 
+# 
+# el_dist  %>%
+#   ggplot( aes(x = year, y = value,  label=comma( value, accuracy = 1) , color = name ,group = name)) +
+#   geom_line(size = 1.5) +
+#   geom_label( size = 3 , color = "black") +
+#   theme_hc() +
+#   scale_color_pander() +
+#   scale_y_continuous(labels = comma_format(), limits = c(0,35000)) +
+#   labs(x = "",
+#        y = "",
+#        color ="",
+#               title = ("EL Enrollment and Number of Reclassified Students by Year"),
+#               caption = "Source: EL Reclassification Data \n https://www.cde.ca.gov/ds/sd/sd/filesreclass.asp")
+#   
+# 
+# ggsave(here("figs","2021","reclass.png"), width = 7, height = 5)
+# 
+#  
+# # 
+# # el_enrol <- cupc.mry %>%
+# #   summarise(countyenrollment = sum(EnglishLearnerEl)) %>%
+# #   `colnames<-`(c("year","value")) %>%
+# #   ungroup() %>%
+# #   mutate(Geo = "EL Enrollment") 
+# # 
+# # el_enrol %>%
+# #   bind_rows(el_dist) %>%
+# #   ggplot( aes(x = year, y = value,  label=comma( value) , group = Geo, color = Geo)) +
+# #   geom_line(size = 1.5) +
+# #   geom_label( size = 3, color = "black") +
+# #   theme_hc() +
+# #   scale_color_pander() +
+# #   scale_y_continuous(labels = comma_format(), limits = c(0,40000)) +
+# #   labs(x = "",
+# #        y = "",
+# #        color ="",
+# #        title = ("EL Enrollment and Number of Reclassified Students by Year"),
+# #        caption = "Sources: Unduplicated Pupil Count \n https://www.cde.ca.gov/ds/sd/sd/filescupc.asp \nEL Reclassification Data \n https://www.cde.ca.gov/ds/sd/sd/filesreclass.asp") 
+# # 
+# 
+# 
 ### End ----
 devtools::session_info()
 
