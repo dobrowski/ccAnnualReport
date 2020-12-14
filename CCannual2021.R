@@ -3,16 +3,16 @@
 #' ---
 
 
-# Free and Reduced Lunch Meal Program
-# Student Homelessness
-# Public School Enrollment
-# Children Enrolled in Special Education
-# Physical Fitness
-# Graduation Rates Over Time
-# Student Suspension Rates Over Time
-# Student Expulsion Rates Over Time
-# Student Drop Out Rate
-# College Going Rate
+# Free and Reduced Lunch Meal Program - Have
+# Student Homelessness - Have
+# Public School Enrollment - Have 
+# Children Enrolled in Special Education - unknown date
+# Physical Fitness - will not get (testing waived)
+# Graduation Rates Over Time -  historically mid-December
+# Student Suspension Rates Over Time -  historically mid-December
+# Student Expulsion Rates Over Time  - historically mid-December
+# Student Drop Out Rate -  have
+# College Going Rate - unknown (released in July 2019 last)
 
 
 
@@ -26,6 +26,7 @@ library(vroom)
 library(rvest)
 library(xml2)
 library(MCOE)
+library(ggrepel)
 
 
 con <- mcoe_sql_con()
@@ -59,6 +60,8 @@ susp.acron <- tribble(
   "RW", "White",
   "GM", "Male",
   "GF", "Female",
+  "GX", "Non-Binary", 
+  "GZ", "Missing Gender",
   "SE", "English Learners",
   "SD", "Students with Disabilities",
   "SS", "Socioeconomically Disadvantaged",
@@ -108,7 +111,10 @@ grad_sub <-tbl(con,"GRAD_FOUR") %>%
 #**********
 ggplot(grad_all, aes(x = AcademicYear, y = Regular_HS_Diploma_Graduates_Rate/100 , group = Geo, color = Geo , linetype = Geo, label=percent(Regular_HS_Diploma_Graduates_Rate/100, digits = 0) )) +
   geom_line(size = 1.5) +
-  geom_label(data = grad_all %>% filter(AcademicYear == max(AcademicYear)) , size = 3, color = "black") +
+  geom_label_repel(data = grad_all %>% filter(AcademicYear == max(AcademicYear)) ,
+                   size = 3,
+                #  color = "black",
+                   show.legend = FALSE) +
   theme_hc() +
   #        coord_flip() +
   scale_color_few() +
@@ -189,7 +195,10 @@ ggsave(here("figs","2021","CollegeGoingRate.png"), width = 6.5, height = 4)
 
 ggplot(grad_all, aes(x = AcademicYear, y = Dropout_Rate/100, group = Geo, color = Geo , linetype = Geo, label=percent(Dropout_Rate/100, digits = 0) )) +
   geom_line(size = 1.5) +
-  geom_label(data = grad_all %>% filter(AcademicYear == max(AcademicYear)) , size = 3, color = "black") +
+  geom_label_repel(data = grad_all %>% filter(AcademicYear == max(AcademicYear)) ,
+                   size = 3,
+                   #  color = "black",
+                   show.legend = FALSE) +
   theme_hc() +  
   #        coord_flip() +
   scale_color_few() +
