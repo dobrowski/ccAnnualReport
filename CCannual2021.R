@@ -127,7 +127,7 @@ ggplot(grad_all, aes(x = AcademicYear, y = Regular_HS_Diploma_Graduates_Rate/100
        title = ("Graduation Rates Over Time"),
        caption = "Source: Adjusted Cohort Outcome Data \n https://www.cde.ca.gov/ds/sd/sd/filesacgr.asp") 
 
-ggsave(here("figs","2021","graduationRate.png"), width = 6, height = 7)
+ggsave(here("figs","2021","graduationRate.png"), width = 6, height = 5)
 
 
 
@@ -537,9 +537,12 @@ pft.mry %>%
   filter(str_detect(name, "Perc")) %>%
 ggplot(aes(x= year, y = value/100, group = GeoGrade, color = GeoGrade, linetype =GeoGrade, label=percent(value/100, digits = 0))) +
   geom_line(size = 1.5) +
-  geom_label(data = pft.mry %>% 
+  geom_label_repel(data = pft.mry %>% 
               filter(str_detect(name, "Perc")) %>%
-              filter(year == max(year)) , size = 3, color = "black") +
+              filter(year == max(year)) , size = 3,
+      #        color = "black"
+      show.legend = FALSE
+              ) +
   theme_hc() +
   scale_color_manual(values = pft.pal ) +
 #    scale_color_few() +
@@ -554,7 +557,7 @@ ggplot(aes(x= year, y = value/100, group = GeoGrade, color = GeoGrade, linetype 
        subtitle = "Percentage Meeting 4 or more of 6 Fitness Tests",
        caption = "Source: Physical Fitness Test Data \n https://www.cde.ca.gov/ta/tg/pf/pftresearch.asp")
 
-ggsave(here("figs","2021","physical.png"), width = 6, height = 10)
+ggsave(here("figs","2021","physical.png"), width = 6, height = 5)
 
 
 # ### Math and ELA scores ----
@@ -679,45 +682,42 @@ ggsave(here("figs","2021","physical.png"), width = 6, height = 10)
 # 
 # 
 # ### EL Reclassification ----
-# 
-# # https://www.cde.ca.gov/ds/sd/sd/filesreclass.asp
-# 
-# setwd(here("data","reclass"))
-# 
-# files <- fs::dir_ls()
-# 
-# el_vroom <- vroom(files, id = "year")
-# 
-# setwd(here())
-# 
-# el_dist <- el_vroom %>%
-#   filter( str_detect(CDS,"^27"  )) %>%
-#   mutate(year = str_extract_all(year, "\\d{1,2}") %>% simplify() %>% as.numeric()) %>%
-#   mutate(year = paste0("20",year-1,"-20",year)) %>%
-# #  filter(year >= "2014-2015") %>%
-#   group_by(year) %>%
-#   transmute(`Reclassified Students` = sum(Reclass),
-#             `EL Enrollment` = sum(EL)) %>%
-#   distinct() %>%
-#   pivot_longer(cols = c(`Reclassified Students`, `EL Enrollment`))
-# 
-# 
-# el_dist  %>%
-#   ggplot( aes(x = year, y = value,  label=comma( value, accuracy = 1) , color = name ,group = name)) +
-#   geom_line(size = 1.5) +
-#   geom_label( size = 3 , color = "black") +
-#   theme_hc() +
-#   scale_color_pander() +
-#   scale_y_continuous(labels = comma_format(), limits = c(0,35000)) +
-#   labs(x = "",
-#        y = "",
-#        color ="",
-#               title = ("EL Enrollment and Number of Reclassified Students by Year"),
-#               caption = "Source: EL Reclassification Data \n https://www.cde.ca.gov/ds/sd/sd/filesreclass.asp")
-#   
-# 
-# ggsave(here("figs","2021","reclass.png"), width = 7, height = 5)
-# 
+
+# https://www.cde.ca.gov/ds/sd/sd/filesreclass.asp
+
+
+el_vroom <- tbl(con,"RECLASS") %>% 
+  filter(County == "Monterey"  ) %>%
+  collect() 
+
+el_dist <- el_vroom %>%
+#  filter( str_detect(CDS,"^27"  )) %>%
+  mutate(year = str_extract_all(YEAR, "\\d{1,2}") %>% simplify() %>% as.numeric()) %>%
+  mutate(year = paste0("20",year-1,"-20",year)) %>%
+#  filter(year >= "2014-2015") %>%
+  group_by(year) %>%
+  transmute(`Reclassified Students` = sum(Reclass),
+            `EL Enrollment` = sum(EL)) %>%
+  distinct() %>%
+  pivot_longer(cols = c(`Reclassified Students`, `EL Enrollment`))
+
+
+el_dist  %>%
+  ggplot( aes(x = year, y = value,  label=comma( value, accuracy = 1) , color = name ,group = name)) +
+  geom_line(size = 1.5) +
+  geom_label( size = 3 , color = "black") +
+  theme_hc() +
+  scale_color_pander() +
+  scale_y_continuous(labels = comma_format(), limits = c(0,35000)) +
+  labs(x = "",
+       y = "",
+       color ="",
+              title = ("EL Enrollment and Number of Reclassified Students by Year"),
+              caption = "Source: EL Reclassification Data \n https://www.cde.ca.gov/ds/sd/sd/filesreclass.asp")
+
+
+ggsave(here("figs","2021","reclass.png"), width = 7, height = 5)
+
 #  
 # # 
 # # el_enrol <- cupc.mry %>%
