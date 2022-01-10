@@ -29,6 +29,8 @@ library(MCOE)
 library(ggrepel)
 
 
+year.folder <- "2022"
+
 con <- mcoe_sql_con()
 
 import_files <- function(dir,globy){
@@ -106,7 +108,8 @@ grad_sub <-tbl(con,"GRAD_FOUR") %>%
   filter(ReportingCategory != "TA")
 
 
-
+# grad_all2 <- grad_all %>%
+#   mutate(Regular_HS_Diploma_Graduates_Rate = ifelse(AcademicYear == "2018-19", NA , Regular_HS_Diploma_Graduates_Rate))
 
 #**********
 ggplot(grad_all, aes(x = AcademicYear, y = Regular_HS_Diploma_Graduates_Rate/100 , group = Geo, color = Geo , linetype = Geo, label=percent(Regular_HS_Diploma_Graduates_Rate/100, digits = 0) )) +
@@ -120,14 +123,18 @@ ggplot(grad_all, aes(x = AcademicYear, y = Regular_HS_Diploma_Graduates_Rate/100
   scale_color_few() +
   scale_y_continuous(labels = percent_format(accuracy = 1), limits = c(.7,.9)) +
   scale_linetype_manual(values =  c("dashed", "solid")) +
-  guides(linetype = FALSE) +
+  guides(linetype = "none") +
   labs(x = "",
        y = "",
        color ="",
        title = ("Graduation Rates Over Time"),
-       caption = "Source: Adjusted Cohort Outcome Data \n https://www.cde.ca.gov/ds/sd/sd/filesacgr.asp") 
+       caption = "Source: Adjusted Cohort Outcome Data \n https://www.cde.ca.gov/ds/sd/sd/filesacgr.asp") # +
+# Added for pandemic drawing
+#      geom_vline(xintercept = "2018-19", linetype = "longdash" )
 
-ggsave(here("figs","2021","graduationRate.png"), width = 6, height = 5)
+
+
+ggsave(here("figs",year.folder,"graduationRate.png"), width = 6, height = 5)
 
 
 
@@ -148,7 +155,7 @@ ggplot(grad_sub, aes( y = Regular_HS_Diploma_Graduates_Rate/100, x =fct_reorder(
        title = ("Graduation Rates by Student Group"),
        caption = "Source: Adjusted Cohort Outcome Data \n https://www.cde.ca.gov/ds/sd/sd/filesacgr.asp") 
 
-ggsave(here("figs","2021","grad-subgroup.png"), width = 6, height = 7)
+ggsave(here("figs",year.folder,"grad-subgroup.png"), width = 6, height = 7)
 
 ### College Going Rate ------
 
@@ -177,14 +184,14 @@ ggplot(cgr_all, aes(x = AcademicYear, y = CGR12/100, group = Geo, color = Geo , 
   scale_color_few() +
   scale_y_continuous(labels = percent_format(accuracy = 1), limits = c(.5,.7)) +
   scale_linetype_manual(values =  c("dashed", "solid")) +
-  guides(linetype = FALSE) +
+  guides(linetype = "none") +
   labs(x = "",
        y = "",
        color ="",
        title = ("College-Going Rate Over Time "),
        caption = "Source: College-Going Rate for HS Completers (12-month)  https://www.cde.ca.gov/ds/sd/sd/filescgr12.asp") 
 
-ggsave(here("figs","2021","CollegeGoingRate.png"), width = 6.5, height = 4)
+ggsave(here("figs",year.folder,"CollegeGoingRate.png"), width = 6.5, height = 4)
 
 
 ### Dropout Rate ------
@@ -205,14 +212,14 @@ ggplot(grad_all, aes(x = AcademicYear, y = Dropout_Rate/100, group = Geo, color 
   mcoe_theme +
   scale_y_continuous(labels = percent_format(accuracy = 1), limits = c(0,.15)) +
   scale_linetype_manual(values =  c("dashed", "solid")) +
-  guides(linetype = FALSE) +
+  guides(linetype = "none") +
   labs(x = "",
        y = "",
        color ="",
        title = ("Dropout Rates Over Time"),
        caption = "Source: Adjusted Cohort Outcome Data \n https://www.cde.ca.gov/ds/sd/sd/filesacgr.asp") 
 
-ggsave(here("figs","2021","dropout.png"), width = 6, height = 4)
+ggsave(here("figs",year.folder,"dropout.png"), width = 6, height = 4)
 
 
 ggplot(grad_sub, aes( y = Dropout_Rate/100, x =fct_reorder(StudentGroup, Dropout_Rate) ,  label = percent(Dropout_Rate/100, accuracy = .1))) +
@@ -232,7 +239,7 @@ ggplot(grad_sub, aes( y = Dropout_Rate/100, x =fct_reorder(StudentGroup, Dropout
        title = ("Dropout Rates by Student Group"),
        caption = "Source: Adjusted Cohort Outcome Data \n https://www.cde.ca.gov/ds/sd/sd/filesacgr.asp") 
 
-ggsave(here("figs","2021","drop-subgroup.png"), width = 6, height = 7)
+ggsave(here("figs",year.folder,"drop-subgroup.png"), width = 6, height = 7)
 
 
 ### Enrollment -------
@@ -275,19 +282,19 @@ enrollment <- function(enrolltype, lowlimit, highlimit,tit ){
 
 #******
 enrollment(total_enrollment, 60000, 80000, "Total Enrollment in Monterey County")
-ggsave(here("figs","2021","total enrollment.png"), width = 6, height = 4)
+ggsave(here("figs",year.folder,"total enrollment.png"), width = 6, height = 4)
 
 #******
 enrollment(homeless, 0, 10000, "Homeless Enrollment in Monterey County")
-ggsave(here("figs","2021","homeless enrollment.png"), width = 6, height = 4)
+ggsave(here("figs",year.folder,"homeless enrollment.png"), width = 6, height = 4)
 
 #******
 enrollment(unduplicated_frpm_eligible_count, 50000, 60000, "Free/Reduced Price Meals Enrollment in Monterey County")
-ggsave(here("figs","2021","frpm enrollment.png"), width = 6, height = 4)
+ggsave(here("figs",year.folder,"frpm enrollment.png"), width = 6, height = 4)
 
 
 enrollment(EnglishLearnerEl, 25000, 35000, "English Learner Enrollment in Monterey County")
-ggsave(here("figs","2021","EL enrollment.png"), width = 6, height = 4)
+ggsave(here("figs",year.folder,"EL enrollment.png"), width = 6, height = 4)
 
 
 
@@ -332,7 +339,7 @@ ggplot(sped, aes(x = year, y = value, group = Geo, label=comma( value) )) +
        title = ("Special Education Enrollment in Monterey County"),
        caption = "Source: DataQuest \n https://data1.cde.ca.gov/dataquest/SpecEd/SEEnrEthDis2.asp?cChoice=SEEthDis2&\ncYear=2018-19&TheCounty=27,MONTEREY&clevel=County&ReptCycle=December") 
 
-ggsave(here("figs","2021","SPED enrollment.png"), width = 6, height = 4)
+ggsave(here("figs",year.folder,"SPED enrollment.png"), width = 6, height = 4)
 
 
 ### Suspension ------
@@ -377,14 +384,14 @@ ggplot(susp_all, aes(x = academic_year, y = suspension_rate_total, group = Geo, 
   #        coord_flip() +
   scale_color_few() +
   scale_linetype_manual(values =  c("dashed", "solid")) +
-  guides(linetype = FALSE) +
+  guides(linetype = "none") +
   labs(x = "",
        y = "",
        color ="",
        title = ("K-12 Suspension Rates Over Time"), # fn("K-12 Suspension Rates Over Time"),
        caption = "Source: Suspension Data Files \n https://www.cde.ca.gov/ds/sd/sd/filessd.asp")
 
-ggsave(here("figs","2021","suspension.png"), width = 6, height = 4)
+ggsave(here("figs",year.folder,"suspension.png"), width = 6, height = 4)
 
 
 
@@ -405,7 +412,7 @@ ggplot(susp_sub, aes( y = suspension_rate_total/100, x =fct_reorder(StudentGroup
        title = ("K-12 Suspension Rates By Subgroup"), # fn("K-12 Suspension Rates Over Time"),
        caption = "Source: Suspension Data Files \n https://www.cde.ca.gov/ds/sd/sd/filessd.asp")
 
-ggsave(here("figs","2021","suspension-subgroup.png"), width = 6, height = 7)
+ggsave(here("figs",year.folder,"suspension-subgroup.png"), width = 6, height = 7)
 
 
 ### Expulsion -------
@@ -451,14 +458,14 @@ ggplot(exp_all, aes(x = academic_year, y = rate, group = Geo, color = Geo , line
   scale_color_few() +
  # scale_y_continuous(labels = scales::percent_format(accuracy = .01), limits = c(0,0.002)) +
   scale_linetype_manual(values =  c("dashed", "solid")) +
-  guides(linetype = FALSE) +
+  guides(linetype = "none") +
   labs(x = "",
        y = "",
        color ="",
        title =  ("K-12 Expulsion Rates per 1,000 Over Time"), #fn("K-12 Expulsion Rates Over Time"),
        caption = "Source: Expulsion Data Files \n https://www.cde.ca.gov/ds/sd/sd/filesed.asp")
 
-ggsave(here("figs","2021","expulsion.png"), width = 6, height = 4)
+ggsave(here("figs",year.folder,"expulsion.png"), width = 6, height = 4)
 
 
 
@@ -479,7 +486,7 @@ ggplot(exp_sub, aes( y = rate, x =fct_reorder(StudentGroup, rate) ,  label = rou
        title = ("K-12 Expulsion Rates per 1,000 By Subgroup"), # fn("K-12 Suspension Rates Over Time"),
        caption = "Source: Expulsion Data Files \n https://www.cde.ca.gov/ds/sd/sd/filesed.asp")
 
-ggsave(here("figs","2021","expulsion-subgroup.png"), width = 6, height = 7)
+ggsave(here("figs",year.folder,"expulsion-subgroup.png"), width = 6, height = 7)
 
 
 ### Physical Fitness -----
@@ -548,7 +555,7 @@ ggplot(aes(x= year, y = value/100, group = GeoGrade, color = GeoGrade, linetype 
 #    scale_color_few() +
   scale_y_continuous(labels = percent_format(accuracy = 1), limits = c(.50, .80)) +
   scale_linetype_manual(values =  c("dashed","dashed","dashed", "solid","solid","solid")) +
-  guides(linetype = FALSE) +
+  guides(linetype = "none") +
   guides(color = guide_legend(nrow=3,byrow=FALSE)) +
   labs(x = "",
        y = "",
@@ -557,7 +564,7 @@ ggplot(aes(x= year, y = value/100, group = GeoGrade, color = GeoGrade, linetype 
        subtitle = "Percentage Meeting 4 or more of 6 Fitness Tests",
        caption = "Source: Physical Fitness Test Data \n https://www.cde.ca.gov/ta/tg/pf/pftresearch.asp")
 
-ggsave(here("figs","2021","physical.png"), width = 6, height = 5)
+ggsave(here("figs",year.folder,"physical.png"), width = 6, height = 5)
 
 
 # ### Math and ELA scores ----
@@ -596,14 +603,15 @@ ggsave(here("figs","2021","physical.png"), width = 6, height = 5)
 #   scale_color_few() +
 #   scale_y_continuous(labels = percent_format(accuracy = 1), limits = c(0,.6)) +
 #   scale_linetype_manual(values =  c("dashed", "solid")) +
-#   guides(linetype = FALSE) +
+#     guides(linetype = "none") +
+
 #   labs(x = "",
 #        y = "",
 #        color ="",
 #        title = (paste0(test, " Percentage Meeting and Exceeding Rates Over Time")),
 #        caption = "Source: CAASPP Research Files \n https://caaspp-elpac.cde.ca.gov/caaspp/ResearchFileList")
 # 
-# ggsave(here("figs","2021",paste0(test,".png")), width = 6, height = 4)
+# ggsave(here("figs",year.folder,paste0(test,".png")), width = 6, height = 4)
 # 
 # 
 # sbac.filtered %>%
@@ -628,7 +636,7 @@ ggsave(here("figs","2021","physical.png"), width = 6, height = 5)
 #        title = (paste0(test, " Percentage Meeting and Exceeding Rates by Student Group")),
 #        caption = "Source: CAASPP Research Files \n https://caaspp-elpac.cde.ca.gov/caaspp/ResearchFileList")
 # 
-# ggsave(here("figs","2021",paste0(test,"-sub.png")), width = 8, height = 11)
+# ggsave(here("figs",year.folder,paste0(test,"-sub.png")), width = 8, height = 11)
 # 
 # 
 # test <- "Math"
@@ -646,14 +654,15 @@ ggsave(here("figs","2021","physical.png"), width = 6, height = 5)
 #   scale_color_few() +
 #   scale_y_continuous(labels = percent_format(accuracy = 1), limits = c(0,.6)) +
 #   scale_linetype_manual(values =  c("dashed", "solid")) +
-#   guides(linetype = FALSE) +
+#     guides(linetype = "none") +
+
 #   labs(x = "",
 #        y = "",
 #        color ="",
 #        title = (paste0(test, " Percentage Meeting and Exceeding Rates Over Time")),
 #        caption = "Source: CAASPP Research Files \n https://caaspp-elpac.cde.ca.gov/caaspp/ResearchFileList")
 # 
-# ggsave(here("figs","2021",paste0(test,".png")), width = 6, height = 4)
+# ggsave(here("figs",year.folder,paste0(test,".png")), width = 6, height = 4)
 # 
 # 
 # sbac.filtered %>%
@@ -678,7 +687,7 @@ ggsave(here("figs","2021","physical.png"), width = 6, height = 5)
 #        title = (paste0(test, " Percentage Meeting and Exceeding Rates by Student Group")),
 #        caption = "Source: CAASPP Research Files \n https://caaspp-elpac.cde.ca.gov/caaspp/ResearchFileList")
 # 
-# ggsave(here("figs","2021",paste0(test,"-sub.png")), width = 8, height = 11)
+# ggsave(here("figs",year.folder,paste0(test,"-sub.png")), width = 8, height = 11)
 # 
 # 
 # ### EL Reclassification ----
@@ -716,7 +725,7 @@ el_dist  %>%
               caption = "Source: EL Reclassification Data \n https://www.cde.ca.gov/ds/sd/sd/filesreclass.asp")
 
 
-ggsave(here("figs","2021","reclass.png"), width = 7, height = 5)
+ggsave(here("figs",year.folder,"reclass.png"), width = 7, height = 5)
 
 #  
 # # 
