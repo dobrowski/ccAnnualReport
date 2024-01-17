@@ -48,7 +48,7 @@ import_files <- function(dir,globy){
 }
 
 
-
+# Note:  Should replace this with codebook function
 susp.acron <- tribble(
   ~ReportingCategory, ~StudentGroup,
   "RB", "African American",
@@ -128,9 +128,9 @@ ggplot(grad_all, aes(x = AcademicYear, y = Regular_HS_Diploma_Graduates_Rate/100
        y = "",
        color ="",
        title = ("Graduation Rates Over Time"),
-       caption = "Source: Adjusted Cohort Outcome Data \n https://www.cde.ca.gov/ds/sd/sd/filesacgr.asp") # +
+       caption = "Source: Adjusted Cohort Outcome Data \n https://www.cde.ca.gov/ds/sd/sd/filesacgr.asp") +
 # Added for pandemic drawing
-#      geom_vline(xintercept = "2018-19", linetype = "longdash" )
+      geom_vline(xintercept = "2019-20", linetype = "longdash" )
 
 
 
@@ -217,7 +217,9 @@ ggplot(grad_all, aes(x = AcademicYear, y = Dropout_Rate/100, group = Geo, color 
        y = "",
        color ="",
        title = ("Dropout Rates Over Time"),
-       caption = "Source: Adjusted Cohort Outcome Data \n https://www.cde.ca.gov/ds/sd/sd/filesacgr.asp") 
+       caption = "Source: Adjusted Cohort Outcome Data \n https://www.cde.ca.gov/ds/sd/sd/filesacgr.asp") +
+  # Added for pandemic drawing
+  geom_vline(xintercept = "2019-20", linetype = "longdash" )
 
 ggsave(here("figs",year.folder,"dropout.png"), width = 6, height = 4)
 
@@ -249,6 +251,11 @@ ggsave(here("figs",year.folder,"drop-subgroup.png"), width = 6, height = 7)
 
 ## https://www.cde.ca.gov/ds/sd/sd/filescupc.asp
 
+
+
+
+
+# Redo these with the cummulative enrollment files,  they are more complete and include SWD 
 
 cupc.mry <- tbl(con, "UPC") %>% 
   filter(County_Code == 27) %>%
@@ -293,7 +300,7 @@ enrollment(unduplicated_frpm_eligible_count, 50000, 60000, "Free/Reduced Price M
 ggsave(here("figs",year.folder,"frpm enrollment.png"), width = 6, height = 4)
 
 
-enrollment(EnglishLearnerEl, 25000, 35000, "English Learner Enrollment in Monterey County")
+enrollment(english_learner_el, 25000, 35000, "English Learner Enrollment in Monterey County")
 ggsave(here("figs",year.folder,"EL enrollment.png"), width = 6, height = 4)
 
 
@@ -317,8 +324,9 @@ sped.count <- function(yr) {
 }  # Goes to URL, uses year to pull out total SPED kids that year 
 
 
+sped.count("2018-19")
 
-sped <- tibble( year = c("2011-12", "2012-13" , "2013-14" ,"2014-15", "2015-16" , "2016-17", "2017-18", "2018-19"))
+sped <- tibble( year = c("2011-12", "2012-13" , "2013-14" ,"2014-15", "2015-16" , "2016-17", "2017-18", "2018-19", "2019-20", "2020-21"))
 
 sped <- sped %>% mutate(value = map(year, sped.count) %>%   # use function for all the years 
                           simplify() %>%    
@@ -340,6 +348,59 @@ ggplot(sped, aes(x = year, y = value, group = Geo, label=comma( value) )) +
        caption = "Source: DataQuest \n https://data1.cde.ca.gov/dataquest/SpecEd/SEEnrEthDis2.asp?cChoice=SEEthDis2&\ncYear=2018-19&TheCounty=27,MONTEREY&clevel=County&ReptCycle=December") 
 
 ggsave(here("figs",year.folder,"SPED enrollment.png"), width = 6, height = 4)
+
+
+
+#  Using Cumulative Enrollment Only
+
+
+cenrol <- tbl(con, "CENROLLMENT") %>% 
+  filter(CountyCode == 27,
+         AggregateLevel == "C") %>%
+  collect() %>%
+  group_by(AcademicYear) %>% 
+  mutate(CumulativeEnrollment = as.numeric(CumulativeEnrollment))
+
+cenrollment <- function(enrolltype, lowlimit, highlimit,tit ){
+  cenrol %>% 
+    filter(Charter == "All",
+           ReportingCategory == {{enrolltype}}) %>%
+    mutate(Geo = "Monterey County") %>%
+    ggplot( aes(x = AcademicYear, y =  CumulativeEnrollment, group = CountyName , label=comma( CumulativeEnrollment) 
+    )) +
+    geom_line(size = 1.5) +
+    geom_label( size = 3, color = "black") +
+    theme_hc() +
+    scale_color_few() +
+    scale_y_continuous(labels = comma_format(), limits = c(lowlimit,highlimit)) +
+    labs(x = "",
+         y = "",
+         color ="",
+         title = (tit),
+         caption = "Source: Cumulative Enrollment Data \n https://www.cde.ca.gov/ds/ad/filesenrcum.asp")
+}
+
+#******
+cenrollment("TA", 75000, 85000, "Total Enrollment in Monterey County")
+ggsave(here("figs",year.folder,"total enrollment c.png"), width = 6, height = 4)
+
+#******
+cenrollment("SH", 0, 10000, "Homeless Enrollment in Monterey County")
+ggsave(here("figs",year.folder,"homeless enrollment c.png"), width = 6, height = 4)
+
+#******
+cenrollment("SS", 58000, 63000, "Socioeconomically Disadvantaged Enrollment in Monterey County")
+ggsave(here("figs",year.folder,"SocioEcon enrollment c.png"), width = 6, height = 4)
+
+#******
+cenrollment("SE", 25000, 35000, "English Learner Enrollment in Monterey County")
+ggsave(here("figs",year.folder,"EL enrollment c.png"), width = 6, height = 4)
+
+
+#******
+cenrollment("SD", 5000, 10000, "Students with Disabilities Enrollment in Monterey County")
+ggsave(here("figs",year.folder,"SWD enrollment c.png"), width = 6, height = 4)
+
 
 
 ### Suspension ------
@@ -389,7 +450,9 @@ ggplot(susp_all, aes(x = academic_year, y = suspension_rate_total, group = Geo, 
        y = "",
        color ="",
        title = ("K-12 Suspension Rates Over Time"), # fn("K-12 Suspension Rates Over Time"),
-       caption = "Source: Suspension Data Files \n https://www.cde.ca.gov/ds/sd/sd/filessd.asp")
+       caption = "Source: Suspension Data Files \n https://www.cde.ca.gov/ds/sd/sd/filessd.asp") +
+  # Added for pandemic drawing
+  geom_vline(xintercept = "2019-20", linetype = "longdash" )
 
 ggsave(here("figs",year.folder,"suspension.png"), width = 6, height = 4)
 
@@ -453,7 +516,7 @@ exp_sub <- exp_vroom %>%
 
 ggplot(exp_all, aes(x = academic_year, y = rate, group = Geo, color = Geo , linetype = Geo, label = round2( rate, 2), accuracy = .01 )) +
   geom_line(size = 1.5) +
-  geom_label(data = exp_all %>% filter(academic_year == max(academic_year)) , size = 3, color = "black") +
+  geom_label_repel(data = exp_all %>% filter(academic_year == max(academic_year)) , size = 3) +
   theme_hc() +
   scale_color_few() +
  # scale_y_continuous(labels = scales::percent_format(accuracy = .01), limits = c(0,0.002)) +
@@ -463,7 +526,10 @@ ggplot(exp_all, aes(x = academic_year, y = rate, group = Geo, color = Geo , line
        y = "",
        color ="",
        title =  ("K-12 Expulsion Rates per 1,000 Over Time"), #fn("K-12 Expulsion Rates Over Time"),
-       caption = "Source: Expulsion Data Files \n https://www.cde.ca.gov/ds/sd/sd/filesed.asp")
+       caption = "Source: Expulsion Data Files \n https://www.cde.ca.gov/ds/sd/sd/filesed.asp") +
+  # Added for pandemic drawing
+  geom_vline(xintercept = "2019-20", linetype = "longdash" )
+
 
 ggsave(here("figs",year.folder,"expulsion.png"), width = 6, height = 4)
 
